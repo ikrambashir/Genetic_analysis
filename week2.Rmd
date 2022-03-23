@@ -2,7 +2,9 @@
 title: 'week # 2'
 author: "Bashir,I. (2022)"
 date: "20/03/2022"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ## An R Introduction 
