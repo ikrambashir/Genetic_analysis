@@ -1,0 +1,99 @@
+---
+title: "week_3_assignment"
+author: "Bashir,I. (2022)"
+date: "01/04/2022"
+output: html_document
+---
+
+1.  In an R Markdown file, load the data files into R and compute the chi-square test using base R functions shown during the class "Chi-square tests, P-values and multiple testing correction (March 24, 2022)"
+
+2.  Use Bonferroni correction to see whether marker loci follow the expected segregation ratio for each mouse and maize populations
+
+3.  Submit the HTML file originated from your R Markdown script that you used to run the analyses above using the button "Add submission" below on this page
+
+--------
+
+# Data upload
+
+```{r}
+mouse <- read.csv(file = "data/mouse.csv", header = TRUE)
+maize <- read.csv(file = "data/maize.csv", header = TRUE)
+head(mouse)
+head(maize)
+```
+
+# Data cleaning
+
+```{r}
+mouse <- mouse[-1,-1]
+library(dplyr)
+maize <- select(maize, -c('IND', 'GY'))
+```
+
+### Data structure
+
+```{r}
+dim(mouse)
+dim(maize)
+```
+
+# Mouse Data Analysis
+# P-values
+```{r}
+M <- 14 # number of markers
+N <- 103 # number of individuals
+```
+
+
+```{r}
+exp <- c(0.5, 0.5)
+p.value <- rep(NA, M) # initializes an object to store the p-values
+for (m in 1:M) {
+  print(m)
+  obs <- table(mouse[,m])
+  p.value[m] <- chisq.test(x = obs, p= exp)$p.value}
+p.value
+```
+
+```{r}
+plot(sort(p.value), ylim = c(0,1)) # plot of ordered p-values
+abline(h = 0.05,  col = "red")
+legend("topleft", legend=c("alpha=0.05"), col=c("red"), lty=1)
+```
+
+## Multiple Test Correction
+
+### Bonferroni correction
+
+```{r}
+plot(sort(p.value), ylim = c(0,1)) # plot of ordered p-values
+abline(h = c(0.05, 0.05/M) ,  col = c("red", "blue"))
+legend("topleft", legend=c("alpha=0.05", "alpha* = 0.05/M"), col=c("red", "blue"), lty=1)
+```
+
+# Maiza Data Analysis
+
+```{r}
+marker <- 12
+number <- 171
+exp1 <- c(0.25,0.5, 0.25) 
+p.value1 <- rep(NA, marker) # initializes an object to store the p-values
+for (m1 in 1:marker) {
+  print(m1)
+  obs <- table(maize[,m1])
+  p.value1[m1] <- chisq.test(x = obs, p= exp1)$p.value
+}
+p.value1
+```
+
+```{r}
+plot(sort(p.value1), ylim = c(0,1)) # plot of ordered p-values
+abline(h = 0.05,  col = "red")
+legend("topleft", legend=c("alpha=0.05"), col=c("red"), lty=1)
+```
+
+```{r}
+plot(sort(p.value1), ylim = c(0,1)) # plot of ordered p-values
+abline(h = c(0.05, 0.05/marker) ,  col = c("red", "blue"))
+legend("topleft", legend=c("alpha=0.05", "alpha* = 0.05/marker"), col=c("red", "blue"), lty=1)
+```

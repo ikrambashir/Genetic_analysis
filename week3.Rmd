@@ -22,7 +22,7 @@ table(mrk1)
 Usually, we need to obtain marker information for hundreds or thousands of loci in order to have the genome covered by markers
 
 ```{r}
-M <- 1000 # numebr of markers
+M <- 1000 # number of markers
 N <- 100 # number of individuals
 geno <- matrix(data = NA, nrow = N, ncol =M) # intialize an empty matrix to store the results
 colnames(geno) <- paste0("Mrk", 1:M)
@@ -54,7 +54,7 @@ N <- 103 # number of individuals
 ```
 
 ```{r}
-exp <- c(0.5, 0.5) # the expected # the exepected proportion between categories in a BC and this proportion depend upon the type of marker e.g.  dominant , codominant or recessive markers
+exp <- c(0.5, 0.5) # the expected # the expected proportion between categories in a BC and this proportion depend upon the type of marker e.g.  dominant , co-dominant or recessive markers
 p.value <- rep(NA, M) # initializes an object to store the p-values
 for (m in 1:M) {
   print(m)
@@ -62,7 +62,6 @@ for (m in 1:M) {
   p.value[m] <- chisq.test(x = obs, p= exp)$p.value
 }
 p.value
-
 ```
 
 ### Plotting
@@ -80,7 +79,6 @@ legend("topleft", legend=c("alpha=0.05", "alpha* = 0.05/M"), col=c("red", "blue"
 ```
 
 ## Multiple Test Correction
-
 ### Bonferroni correction
 
 ```{r}
