@@ -1,0 +1,419 @@
+---
+title: "week6_single marker analysis"
+author: "Bashir,I. (2022)"
+date: "14/04/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r}
+mouse <- read.csv("data/mouse.csv")
+head(mouse)
+```
+
+```{r}
+mouse <- mouse[-c(1),] # excluding the first row just to keep phenotype plus marker data only
+head(mouse)
+```
+
+```{r}
+layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
+image(t(as.matrix(mouse[,1])), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "BW", ylab = "Individuals (N = 103)")
+
+image(t(as.matrix(mouse[,2:ncol(mouse)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (M = 14)")
+```
+
+```{r}
+layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
+image(t(as.matrix(mouse[,1])), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "BW", ylab
+= "Individuals (N = 103)")
+image(t(as.matrix(mouse[,2:ncol(mouse)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (M = 14)")
+```
+
+## t-test
+
+```{r}
+t.test(BW ~ M6, data = mouse)
+```
+
+Now, running the -test for all 14 markers and organizing the result as a table:
+
+```{r}
+res.mouse.t <- matrix(NA, nrow = 14, ncol = 4)
+for(m in 1:14) {
+mouse.t <- t.test(formula(paste("BW", "~", colnames(mouse)[m+1])), data = mouse)
+res.mouse.t[m,] <- c(mouse.t$estimate, abs(mouse.t$statistic), mouse.t$p.value)
+}
+colnames(res.mouse.t) <- c("mean in class 0", "mean in class 1", "|t| value", "P value")
+rownames(res.mouse.t) <- colnames(mouse)[2:15]
+knitr::kable(res.mouse.t)
+```
+
+## Analysis of Variance (ANOVA)
+
+```{r}
+summary(aov(BW ~ M6, data = mouse))
+```
+
+Now, running the ANOVA for all 14 markers:
+
+```{r}
+res.mouse.aov <- matrix(NA, nrow = 14, ncol = 2)
+for(m in 1:14) {
+mouse.aov <- summary(aov(formula(paste("BW", "~", colnames(mouse)[m+1])), data = mouse))
+res.mouse.aov[m,] <- c(mouse.aov[[1]]$`F value`[1], mouse.aov[[1]]$`Pr(>F)`[1])
+}
+colnames(res.mouse.aov) <- c("F value", "P value")
+rownames(res.mouse.aov) <- colnames(mouse)[2:15]
+knitr::kable(res.mouse.aov)
+```
+
+## Linear regression model (LM)
+
+```{r}
+summary(lm(BW ~ M6, data = mouse))
+```
+
+Note the and tests available here when $lm()$ is coupled with the summary() function.\
+We can visualize the regression line for the model above using plot() and abline() functions, and see how going from 0 (\$mm\$) to 1 ($Mm$) genotypes make the slope increase significantly.
+
+```{r}
+plot(BW ~ jitter(M6, .25), xlab = "M6", xaxt = "n", data = mouse)
+axis(1, at = c(0,1), labels = c("0\n(mm)", "1\n(Mm)"), tcl=0.5)
+abline(lm(BW ~ M6, data = mouse))
+```
+
+Now, running the linear regression model for all 14 markers
+
+```{r}
+res.mouse.lm <- matrix(NA, nrow = 14, ncol = 7)
+for(m in 1:14) {
+mouse.lm <- summary(lm(formula(paste("BW", "~", colnames(mouse)[m+1])), data = mouse))
+LOD <- (103/2) * log10(mouse.lm$fstatistic[1] * (1 / (103-1-1)) + 1)
+res.mouse.lm[m,] <- c(mouse.lm$coefficients[,1], mouse.lm$coefficients[2,3:4], mouse.lm$fstatistic[1], LOD,
+mouse.lm$r.squared)
+}
+colnames(res.mouse.lm) <- c("Intercept", "Effect", "t value", "P value", "F value", "LOD score", "R-squared")
+rownames(res.mouse.lm) <- colnames(mouse)[2:15]
+knitr::kable(res.mouse.lm)
+```
+
+We can now use the function plot() to visualize the test statistics in terms of values or LOD scores
+
+```{r}
+layout(matrix(c(1,2), nrow = 1, ncol = 2, byrow = TRUE))
+plot(res.mouse.lm[,"F value"], ylab = "F value", xlab = "Markers")
+plot(res.mouse.lm[,"LOD score"], ylab = "LOD score", xlab = "Markers")
+```
+
+# **Maize data**
+
+In order to evaluate the association between the 12 markers from the maize data with its phenotype (grain yield -- GY), we first need to load the data and exclude the first row:
+
+```{r}
+maize <- read.csv("data/maize.csv")
+head(maize)
+maize <- maize[-c(1),] 
+# excluding the first row to keep phenotype plus marker data only
+head(maize)
+```
+
+## Linear regression model (LM)
+
+In an population like the one we have from the maize data, we have three different classes ( , , ) that allow us to investigate two possible genetic effects:
+
+additive effect : the effect arising from allele substitution i,e, aa Aa AA, and
+
+Dominance effect: effect arising from the allele interaction, i.e. aa or AA Aa
+
+First, let us take a look on the
+
+```{r}
+summary(lm(GY ~ M1, data = maize))
+```
+
+Note in the plot below how well the regression line gets close to the marker class means
+
+```{r}
+plot(GY ~ jitter(M1, .5), xlab = "M1", xaxt = "n", data = maize)
+axis(1, at = c(0, 1, 2), labels = c("0\n(mm)", "1\n(Mm)", "2\n(MM)"), tcl = 0.5)
+abline(lm(GY ~ M1, data = maize))
+```
+
+Note that the result above can also be obtained if parameterization changes like this:
+
+\$\$\$x\_{1i}=
+
+\begin{cases}
+
+0-1 = -1 &text{if}
+
+```{r}
+maize.a <- maize[,2:13]-1 # marker codification for additive effects
+head(maize.a)
+```
+
+```{r}
+summary(lm(maize[,"GY"] ~ maize.a[,1]))
+```
+
+Therefore, can also be used as indicator variable (contrasts) for additive effect in . This parameterization\
+allows us to build the indicator variable (contrasts) for dominance effects more easily (i.e. by raising to the power 2). That is:
+
+```{r}
+maize.d <- maize.a^2 # marker codification for dominance effects
+head(maize.d)
+```
+
+Now, we can write our multiple linear regression model, that combines both additive and dominance effects. The model takes the form:
+
+In R, we use the same lm() function, but now it takes two independent variables. For M1:
+
+```{r}
+summary(lm(maize[,"GY"] ~ maize.a[,"M1"] + maize.d[,"M1"]))
+```
+
+Therefore, there is no evidence for dominance effect for M1. The regression line connecting the means from both classes ( 0 = heterozygotes and 1 = homozygotes) in fact does not seem to have a inclination whose angle would be different from zero:
+
+```{r}
+plot(maize[,"GY"] ~ jitter(maize.d[,"M1"], .25), xlab = "M1", ylab = "GY", xaxt = "n")
+axis(1, at = c(0, 1), labels = c("0\n(Mm)", "1\n(mm or MM)"), tcl=0.5)
+abline(lm(maize[,"GY"] ~ maize.d[,"M1"]))
+```
+
+Now, running the multiple linear regression model for all 12 markers:
+
+```{r}
+res.maize.lm <- matrix(NA, nrow = 12, ncol = 10)
+for(m in 1:12) {
+maize.lm <- summary(lm(maize[,"GY"] ~ maize.a[,m] + maize.d[,m]))
+LOD <- (171/2) * log10(maize.lm$fstatistic[1] * (2 / (171-2-1)) + 1)
+res.maize.lm[m,] <- c(maize.lm$coefficients[1,1], maize.lm$coefficients[2,c(1,3,4)], maize.lm$coefficients[3
+,c(1,3,4)], maize.lm$fstatistic[1], LOD, maize.lm$r.squared)
+}
+colnames(res.maize.lm) <- c("Intercept", "Additive effect", "t value (Add.)", "P value (Add.)", "Dominance eff
+ect", "t value (Dom.)", "P value (Dom.)", "F value", "LOD score", "R-squared")
+rownames(res.maize.lm) <- colnames(maize)[2:13]
+knitr::kable(res.maize.lm)
+```
+
+We can now use the function plot() to visualize the test statistics in terms of (joint) values or LOD scores:
+
+plot(res.maize.lm[,"LOD score"], ylab = "LOD score", xlab = "Markers")
+
+```{r}
+layout(matrix(c(1,2), nrow = 1, ncol = 2, byrow = TRUE))
+plot(res.maize.lm[,"F value"], ylab = "F value", xlab = "Markers")
+plot(res.maize.lm[,"LOD score"], ylab = "LOD score", xlab = "Markers")
+```
+
+We just realized that none of the markers have a significant dominance effect. Let us create a new variable called "GYd" that adds 2 units to GY for every heterozygote individuals for M1, while keeping all the other homozygous individuals with their original GY.\
+That means we are purposely increasing the phenotypic value of heterozygotes in 2 units
+
+```{r}
+maize[which(maize[,"M1"] == 1),"GYd"] <- maize[which(maize[,"M1"] == 1),"GY"] + 2
+maize[which(maize[,"M1"] != 1),"GYd"] <- maize[which(maize[,"M1"] != 1),"GY"]
+head(maize)
+```
+
+By doing so, we are basically creating a dominance effect. The difference between class the heterozygotes (Mm) and homozygotes (mm or Mm) can be visualized in the plot below:
+
+```{r}
+plot(maize[,"GYd"] ~ jitter(maize.a[,"M1"], .5), xlab = "M1", ylab = "GYd", xaxt = "n")
+axis(1, at = c(-1, 0, 1), labels = c("-1\n(mm)", "0\n(Mm)", "1\n(MM)"), tcl=0.5)
+abline(lm(maize[,"GYd"] ~ maize[,"M1"]))
+```
+
+Note how the regression line does not fit properly to the data. In linear regression, we say that there is a lack-of-fit. A regression model exhibits lack-of-fit when it fails to adequately describe the functional relationship between the experimental factors and the response variable. Lack-of-fit can occur if important terms from the model such as interactions or quadratic terms are not included.\
+In genetics, the interaction term is called epistasis whereas the quadratic term is called dominance.\
+Look how the inclination of the regression line going from 0 (heterozygotes) to 1 (homozygotes) has changed:
+
+```{r}
+plot(maize[,"GYd"] ~ jitter(maize.d[,"M1"], .25), xlab = "M1", ylab = "GYd", xaxt = "n")
+axis(1, at = c(0, 1), labels = c("0\n(Mm)", "1\n(mm or MM)"), tcl=0.5)
+abline(lm(maize[,"GYd"] ~ maize.d[,"M1"])
+```
+
+To test whether the dominance effect is significant or not, let us compare two alternative models to fit "GYd" in relation to M1 -- one with the additive effect only, and another that has both additive and dominance effect:
+
+```{r}
+summary(lm(maize[,"GYd"] ~ maize.a[,"M1"])) # additive effect only
+```
+
+```{r}
+summary(lm(maize[,"GYd"] ~ maize.a[,"M1"] + maize.d[,"M1"])) # additive and dominance effects
+```
+
+As expected (because we artificially created a significant dominant effect in "GYd"), dominance is now significant Notice how the (i.e. the proportion of explained variance -- PEV) increased from a model with lack-of-fit ( with additive effect only) to a model with a better fit ( with both additive and dominance effects).
+
+## **Single marker analysis with R/qt** 
+
+Now, we will use the R/qtl package function to perform SMA. In order to do so, we first need to load the R/qtl package:
+
+```{r}
+# install.packages("qtl")
+library(qtl)
+```
+
+**Mouse data**
+We need to load the dataset using the read.cross() function. We also estimate the map with the marker order given by the data set (such that we have a map reference for the tests, even though the map is not needed):
+
+```{r}
+mouse <- read.cross(format="csv", file="data/mouse.csv", genotypes=c("0", "1"), crosstype = "bc")
+```
+
+```{r}
+map <- est.map(mouse, error.prob=0, map.function = "kosambi")
+mouse <- replace.map(mouse, map)
+```
+
+The function plotPXG() shows the scatter plot of phenotypic data against the genotypic classes. For M1:
+
+```{r}
+plotPXG(mouse, "M6")
+```
+
+The function to perform the tests for every marker if scanone() , but we need to define the method as mr (marker regression):
+
+```{r}
+mouse.mr <- scanone(mouse, method = "mr")
+mouse.mr 
+```
+
+```{r}
+summary(mouse.mr, threshold = 3)
+```
+
+The summary() function above shows the marker with the highest LOD score within each linkage group given a certain threshold.\
+A plot() function allows the LOD scores for each marker on chromosome 1 for the mouse data, calculated by marker regression, to be graphically shown
+
+```{r}
+plot(mouse.mr, ylab = "LOD score", type = "p")
+```
+
+In order to get the QTL estimates, one should use the function `sim.geno()` that implements a hidden Markov model (HMM) to fix impute missing data and weight any genotyping error in the data. Then, one can use the function `makeqtl()` to indicate where the QTL is, and, finally use the function `fitqtl()` with the argument `get.ests = TRUE` to get the marker effect estimates as follows:
+
+```{r}
+mouse <- sim.geno(mouse)
+mouse.qtl <- makeqtl(mouse, chr = 0, pos = 14.6)
+mouse.fit <- fitqtl(mouse, qtl = mouse.qtl, formula = y ~ Q1, get.ests = TRUE)
+summary(mouse.fit)
+```
+
+**Maize data:**\
+Similarly, we use the `read.cross()` function to load the data:
+
+```{r}
+maize <- read.cross(format="csv", file="data/maize.csv", genotypes=c("0", "1", "2"), crosstype = "f2")
+```
+
+```{r}
+map <- est.map(maize, error.prob=0, map.function = "kosambi")
+maize <- replace.map(maize, map)
+```
+
+And the function `plotPXG()` to visualize the mean changes from one class to the other:
+
+```{r}
+plotPXG(maize, "M1")
+```
+
+The `scanone()` function with the `mr` method is used to compute the LOD score statistics:
+
+```{r}
+maize.mr <- scanone(maize, method="mr")
+maize.mr
+```
+
+```{r}
+summary(maize.mr)
+```
+
+The `summary()` function above shows the marker with the highest LOD score within the linkage group that is higher than the given threshold. The `plot()` function helps with the visualization of the LOD scores for each marker on chromosome 1 for the maize data, calculated by marker regression:
+
+```{r}
+plot(maize.mr, ylab = "LOD score", type = "p")
+```
+
+As similarly performed for mouse data, we use `sim.geno()` followed by `makeqtl()` to indicate where the QTL is, and, `fitqtl()` with the argument `get.ests = TRUE` to get the marker effect estimates as follows:
+
+```{r}
+maize <- sim.geno(maize)
+maize.qtl <- makeqtl(maize, chr = 0, pos = 0)
+maize.fit <- fitqtl(maize, qtl = maize.qtl, formula = y ~ Q1, get.ests = TRUE)
+summary(maize.fit)
+```
+
+\
+
+
+
+\
+
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+\
+
+
+
+\
+
+
+\
+
+
+
+
+
+\
+
+
+\
+
+
+
+\
+
+
+\
+
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
