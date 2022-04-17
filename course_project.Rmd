@@ -1,0 +1,16 @@
+---
+title: "course_project"
+author: "Bashir,I. (2022)"
+date: "17/04/2022"
+output: html_document
+---
+```{r}
+pop3 <- read.csv("data/population_Z003.csv")
+pop3 <- pop3[-c(1),-c(1:34)] # excluding the first column and first row just to keep marker data only
+head(pop3)
+dim(pop3)
+```
+```{r}
+table(pop3[,c(1, 2, 3)])
+```
+
