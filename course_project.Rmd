@@ -64,7 +64,7 @@ image(results[,,1], bty="n", col=rainbow(n = 500, start = 0, end = 0.65), main="
 
 ```{r}
 library(qtl)
-pop <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1"), crosstype = "bc")
+pop <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
 ```
 
 ```{r}
@@ -84,7 +84,7 @@ nullmarkers(pop)
 geno.image(pop)
 ```
 
-In order to compute the segregation tests to see whether each marker follows the 1:1 expected ratio of a backcross population, we use the geno.table function:
+In order to compute the segregation tests to see whether each marker follows the 1:1 expected ratio of a backcross population, we use the `geno.table` function:
 
 ```{r}
 gt.pop <- geno.table(pop)
