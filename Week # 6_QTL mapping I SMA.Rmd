@@ -3,37 +3,87 @@ title: 'Week # 6_Project III - QTL mapping I: single marker analysis (SMA)'
 author: "Bashir,I. (2022)"
 date: "21/04/2022"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
+
 ```{r}
 maize <- read.csv("data/population_Z003.csv")
 head(maize)
 ```
+
 ```{r}
-maize <- maize[-c(),] # excluding the first row just to keep phenotype plus marker data only
+keeps <- c("PlantHeight","PZA02676.2")
+maize = maize[keeps]
+maize <- maize[-c(1),] # excluding the first row just to keep phenotype plus marker data only
 head(maize)
 ```
 
+A nice way to visualize both genotype and phenotype data is using the function `image()` that translates number into colors:
 
+```{r}
+layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
+image(t(as.matrix(maize[,1])), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "Plant Height", ylab= "Individuals (N = 191)")
+image(t(as.matrix(maize[,2:ncol(maize)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (PZA02676.2)")
+```
 
+```{r}
+image(t(as.matrix(sort(maize[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "Plant Height",ylab = "Individuals (N = 191)")
+image(t(as.matrix(maize[order(maize[,1]),2:ncol(maize)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (PZA02676.2)")
+```
 
-
+```{r}
+summary(lm(PlantHeight ~ PZA02676.2, data = maize))
+```
 
 ```{r}
 # install.packages("qtl")
 library(qtl)
 ```
+
+Similarly, we use the read.cross() function to load the data:
+
 ```{r}
 maize <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
-names(maize)
-
+head(maize)
 ```
+
 ```{r}
 map <- est.map(maize, error.prob=0, map.function = "kosambi")
-map
 maize <- replace.map(maize, map)
 ```
+
 he function `plotPXG()` shows the scatter plot of phenotypic data against the genotypic classes. For M1:
+
 ```{r}
-plotPXG(maize, "PZA01763.2")
+plotPXG(maize, "PZA02676.2")
+```
+
+The `scanone()` function with the `mr` method is used to compute the LOD score statistics:
+
+```{r}
+maize.mr <- scanone(maize, method="mr")
+maize.mr
+```
+
+summary
+
+```{r}
+summary(maize.mr)
+```
+
+The `summary()` function above shows the marker with the highest LOD score within the linkage group that is higher than the given threshold. The `plot()` function helps with the visualization of the LOD scores for each marker on chromosome 1 for the maize data, calculated by marker regression:
+
+```{r}
+plot(maize.mr, ylab = "LOD score", type = "p")
+```
+
+As similarly performed for mouse data, we use `sim.geno()` followed by `makeqtl()` to indicate where the QTL is, and, `fitqtl()` with the argument `get.ests = TRUE` to get the marker effect estimates as follows:
+
+```{r}
+maize <- sim.geno(maize)
+maize.qtl <- makeqtl(maize, chr = 0, pos = 0)
+maize.fit <- fitqtl(maize, qtl = maize.qtl, formula = y ~ Q1, get.ests = TRUE)
+summary(maize.fit)
 ```
 
