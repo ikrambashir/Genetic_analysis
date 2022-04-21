@@ -4,7 +4,7 @@ author: "Bashir,I. (2022)"
 date: "17/04/2022"
 output: html_document
 editor_options: 
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 # Maximum likelihood estimation
@@ -64,7 +64,7 @@ image(results[,,1], bty="n", col=rainbow(n = 500, start = 0, end = 0.65), main="
 
 ```{r}
 library(qtl)
-pop <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
+pop3 <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
 ```
 
 ```{r}
@@ -107,4 +107,138 @@ plotRF(pop, col.scheme = "redblue")
 ```{r}
 lg <- formLinkageGroups(pop, max.rf=0.35, min.lod=3)
 table(lg[,2])
+```
+
+# Class practice
+
+```{r}
+library(qtl)
+pop3 <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
+```
+
+```{r}
+maize <- est.rf(cross = pop3)
+plotRF(maize, col.scheme = "redblue")
+```
+
+```{r}
+max.rf <- 0.38
+kosambi <- function(r) (1/4)*log((1+(2*r))/(1-(2*r)))
+kosambi(r =max.rf)
+```
+
+```{r}
+(M <- totmar(maize))
+(num.pair <- choose(M,2))
+(min.lrt <- qchisq(1-(0.05/num.pair), 1)) # min LRT to consider two markers
+(min.lod <- 0.2174 * min.lrt) # conversion of LRT to LOD
+```
+
+```{r}
+maize <- formLinkageGroups(maize, max.rf = 0.38, min.lod = 6.25, reorgMarkers = TRUE)
+table(lg[,2])
+plotRF(maize, col.scheme = "redblue")
+```
+
+```{r}
+maize.bb1 <- maize
+maize.bb2 <- maize
+loglik.bb1 <- loglik.bb2 <- c()
+```
+
+```{r}
+c <- 1
+plotRF(maize, chr=c, col.scheme="redblue")
+
+```
+
+```{r}
+maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
+plotRF(maize.bb1, chr = c, col.scheme = "redblue")
+```
+
+```{r}
+pull.map(maize.bb1, chr = c)
+```
+
+```{r}
+(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map,"loglik"))
+```
+
+```{r}
+maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
+plotRF(maize.bb2, chr = c, col.scheme = "redblue")
+
+```
+
+```{r}
+pull.map(maize.bb2, chr = c)
+```
+
+#### **Linkage group 2**
+
+```{r}
+c <- 2
+plotRF(maize, chr=c, col.scheme = "redblue")
+```
+
+```{r}
+maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
+pull.map(maize.bb1, chr = c)
+```
+
+```{r}
+(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
+```
+
+```{r}
+maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
+pull.map(maize.bb2, chr = c)
+```
+
+```{r}
+plotRF(maize.bb2, chr = c, col.scheme = "redblue")
+```
+
+```{r}
+(loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
+```
+
+#### **Linkage group 3** 
+
+```{r}
+c <- 3
+plotRF(maize, chr=c, col.scheme = "redblue")
+```
+
+```{r}
+maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
+pull.map(maize.bb1, chr = c)
+```
+
+```{r}
+plotRF(maize.bb1, chr = c, col.scheme = "redblue")
+```
+
+```{r}
+(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
+```
+
+```{r}
+maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
+pull.map(maize.bb2, chr = c)
+```
+
+```{r}
+plotRF(maize.bb2, chr = c, col.scheme = "redblue")
+```
+
+```{r}
+
+```
+
+### **Manual adjustments from `orderMarkers()` output**
+
+```{r}
+knitr::kable(cbind(summaryMap(maize.bb1), log.likelihood=c(loglik.bb1, sum(loglik.bb1))))
 ```

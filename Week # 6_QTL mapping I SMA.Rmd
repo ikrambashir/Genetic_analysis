@@ -1,0 +1,39 @@
+---
+title: 'Week # 6_Project III - QTL mapping I: single marker analysis (SMA)'
+author: "Bashir,I. (2022)"
+date: "21/04/2022"
+output: html_document
+---
+```{r}
+maize <- read.csv("data/population_Z003.csv")
+head(maize)
+```
+```{r}
+maize <- maize[-c(),] # excluding the first row just to keep phenotype plus marker data only
+head(maize)
+```
+
+
+
+
+
+
+```{r}
+# install.packages("qtl")
+library(qtl)
+```
+```{r}
+maize <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
+names(maize)
+
+```
+```{r}
+map <- est.map(maize, error.prob=0, map.function = "kosambi")
+map
+maize <- replace.map(maize, map)
+```
+he function `plotPXG()` shows the scatter plot of phenotypic data against the genotypic classes. For M1:
+```{r}
+plotPXG(maize, "PZA01763.2")
+```
+
