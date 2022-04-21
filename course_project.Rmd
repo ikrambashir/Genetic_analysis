@@ -7,108 +7,6 @@ editor_options:
   chunk_output_type: inline
 ---
 
-# Maximum likelihood estimation
-
-```{r}
-pop3 <- read.csv("data/population_Z003.csv")
-pop3 <- pop3[-c(1),-c(1:34)] # excluding the first column and first row just to keep marker data only
-head(pop3)
-```
-
-```{r}
-dim(pop3)
-```
-
-```{r}
-table(pop3[,c(1, 2)])
-```
-
-## Recombination fraction calculation in R
-
-We can create a function that takes two makers, and , from the data, and computes all statistics we need: `LRT, LOD and p value`. We will call this function `twopts.bc`:
-
-```{r}
-twopts.bc <- function(i, j, data) {
-n <- table(data[,c(i, j)]) # counts genotypic classes for two markers i and j
-n.nr <- sum(n[c(1,4)]) # non-recombinants (n2 e n3)
-n.r <- sum(n[2:3]) # recombinants (n1 e n4)
-r.hat <- n.r/(n.nr+n.r) # BC recombination fraction estimator
-log.Lik.H0 <- (n.nr+n.r)*log(0.5/2) # likelihood function for r=0.5
-log.Lik.H1 <- (n.nr*log((1-r.hat)/2) + n.r*log(r.hat/2)) 
-# likelihood function for r estimate
-LRT <- -2*(log.Lik.H0 - log.Lik.H1) # likelihood ratio test
-LOD <- LRT*0.2172 # transformation to LOD
-p.valor <- pchisq(LRT, df=1, lower.tail=FALSE) 
-# P value from a chi-square distribution with 1 degree of freedom
-return(c(r.hat, LRT, LOD, p.valor))
-}
-```
-
-If we use this function in a for loop that goes from marker 1 to marker 14, we can quickly do all the\
-computation:
-
-```{r}
-results <- array(NA, dim=c(ncol(pop3), ncol(pop3), 4))
-for(i in 1:ncol(pop3)) {
-  for(j in i:ncol(pop3)) {
-    results[i,j,] <- twopts.bc(i, j, data=pop3)}}
-```
-
-One useful way of visualizing the recombination fraction estimates is by looking at a heatmap:
-
-```{r}
-image(results[,,1], bty="n", col=rainbow(n = 500, start = 0, end = 0.65), main="population_Z003: recombination fractions")
-```
-
-# Introduction to R/qtl
-
-```{r}
-library(qtl)
-pop3 <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
-```
-
-```{r}
-summary(pop)
-```
-
-```{r}
-pop <- drop.dupmarkers(pop, verbose = TRUE)
-drop.nullmarkers(pop)
-# number of missing genotypes
-plot(nmissing(pop))
-# Identify markers without any genotype data
-nullmarkers(pop)
-```
-
-```{r}
-geno.image(pop)
-```
-
-In order to compute the segregation tests to see whether each marker follows the 1:1 expected ratio of a backcross population, we use the `geno.table` function:
-
-```{r}
-gt.pop <- geno.table(pop)
-gt.pop
-```
-
-```{r}
-table(gt.pop$P.value<0.05) #non-corrected testing
-```
-
-```{r}
-table(gt.pop$P.value<0.05/totmar(pop)) # multiple testing boneferroni
-```
-
-```{r}
-pop <- est.rf(pop)
-plotRF(pop, col.scheme = "redblue")
-```
-
-```{r}
-lg <- formLinkageGroups(pop, max.rf=0.35, min.lod=3)
-table(lg[,2])
-```
-
 # Class practice
 
 ```{r}
@@ -204,7 +102,7 @@ plotRF(maize.bb2, chr = c, col.scheme = "redblue")
 (loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
 ```
 
-#### **Linkage group 3** 
+#### **Linkage group 3**
 
 ```{r}
 c <- 3
