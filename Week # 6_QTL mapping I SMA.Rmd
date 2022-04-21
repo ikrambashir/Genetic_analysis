@@ -9,14 +9,12 @@ editor_options:
 
 ```{r}
 maize <- read.csv("data/population_Z003.csv")
-head(maize)
 ```
 
 ```{r}
 keeps <- c("PlantHeight","PZA02676.2")
 maize = maize[keeps]
 maize <- maize[-c(1),] # excluding the first row just to keep phenotype plus marker data only
-head(maize)
 ```
 
 A nice way to visualize both genotype and phenotype data is using the function `image()` that translates number into colors:
