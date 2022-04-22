@@ -8,31 +8,33 @@ editor_options:
 ---
 
 ```{r}
-maize <- read.csv("data/population_Z003.csv")
+maize1 <- read.csv("data/population_Z003.csv")
 ```
 
 ```{r}
 keeps <- c("PlantHeight","PZA02676.2")
-maize = maize[keeps]
-maize <- maize[-c(1),] # excluding the first row just to keep phenotype plus marker data only
+maize1 = maize1[keeps]
+maize1 <- maize1[-c(1),] # excluding the first row just to keep phenotype plus marker data only
 ```
 
 A nice way to visualize both genotype and phenotype data is using the function `image()` that translates number into colors:
 
 ```{r}
 layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
-image(t(as.matrix(maize[,1])), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "Plant Height", ylab= "Individuals (N = 191)")
-image(t(as.matrix(maize[,2:ncol(maize)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (PZA02676.2)")
+image(t(as.matrix(maize1[,1])), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "Plant Height", ylab= "Individuals (N = 191)")
+image(t(as.matrix(maize1[,2:ncol(maize1)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (PZA02676.2)")
 ```
 
 ```{r}
-image(t(as.matrix(sort(maize[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "Plant Height",ylab = "Individuals (N = 191)")
-image(t(as.matrix(maize[order(maize[,1]),2:ncol(maize)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (PZA02676.2)")
+image(t(as.matrix(sort(maize1[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "Plant Height",ylab = "Individuals (N = 191)")
+image(t(as.matrix(maize1[order(maize1[,1]),2:ncol(maize1)])), col = c("yellow", "blue"), axes = FALSE, xlab = "Markers (PZA02676.2)")
 ```
 
 ```{r}
-summary(lm(PlantHeight ~ PZA02676.2, data = maize))
+summary(lm(PlantHeight ~ PZA02676.2, data = maize1))
 ```
+
+# Single Marker Analysis with `qtl` package
 
 ```{r}
 # install.packages("qtl")
@@ -43,7 +45,7 @@ Similarly, we use the read.cross() function to load the data:
 
 ```{r}
 maize <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
-head(maize)
+summary(maize)
 ```
 
 ```{r}
@@ -54,8 +56,10 @@ maize <- replace.map(maize, map)
 he function `plotPXG()` shows the scatter plot of phenotypic data against the genotypic classes. For M1:
 
 ```{r}
-plotPXG(maize, "PZA02676.2")
+plotPXG(maize, "PZA02676.2", pheno.col = "PlantHeight")
 ```
+
+## LOD Score of markers
 
 The `scanone()` function with the `mr` method is used to compute the LOD score statistics:
 
@@ -64,7 +68,7 @@ maize.mr <- scanone(maize, method="mr")
 maize.mr
 ```
 
-summary
+#### summary
 
 ```{r}
 summary(maize.mr)
@@ -84,4 +88,3 @@ maize.qtl <- makeqtl(maize, chr = 0, pos = 0)
 maize.fit <- fitqtl(maize, qtl = maize.qtl, formula = y ~ Q1, get.ests = TRUE)
 summary(maize.fit)
 ```
-
