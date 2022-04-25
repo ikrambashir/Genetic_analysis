@@ -105,10 +105,11 @@ for(i in 1:10) {
   maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
   print(pull.map(maize.bb1, chr = c))
   plotRF(maize.bb1, chr = c, col.scheme = "redblue")
-  print(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
+  print(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map,"loglik"))
   maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
+  plotRF(maize.bb2, chr = c, col.scheme = "redblue")
   print(pull.map(maize.bb2, chr = c))
-  print(loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
+  print(loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map,"loglik"))
 }
 ```
 
@@ -149,7 +150,7 @@ Now, we can select the best order so far, that we can still try to improve by ma
 
 **Linkage group 1**
 
-From the map summary tables, we notice that from the first run of Branch-and-Bound (`maize.bb1`) provided a better map than the second run (-2697\>-2711 ) even though its length was slightly greater (215\>214 ).
+From the map summary tables, we notice that from the first run of Branch-and-Bound (`maize.bb1`) provided a better map than the second run (-2697>-2711 ) even though its length was slightly greater (215>214 ).
 
 ```{r}
 plotRF(maize.bb1, chr=1, col.scheme = "redblue")
@@ -157,7 +158,7 @@ plotRF(maize.bb1, chr=1, col.scheme = "redblue")
 
 By looking at its `heatmap`, there seems to be small inversions, but no bigger inversions that can be easily corrected manually, so we keep it as is. Small inversions can be fixed by the function `ripple()`. However, this function is not well optimized in R/qtl for many markers, so we can avoid it at this point.\
 **Linkage group 2**\
-For linkage group 2, the first run also provided greater log-likelihood (-2006\>-2016), with a length of 259cM and a gap as big as 91 cM, so we need to fix it. From the heatmap, we notice that there are three subgroups of markers, where the one in the middle seems misplaced. We locate the markers on each side by looking at the major gaps.
+For linkage group 2, the first run also provided greater log-likelihood (-2006>-2016), with a length of 259cM and a gap as big as 91 cM, so we need to fix it. From the heatmap, we notice that there are three subgroups of markers, where the one in the middle seems misplaced. We locate the markers on each side by looking at the major gaps.
 
 ```{r}
 plotRF(maize.bb1, chr = 2, col.scheme = "redblue")
@@ -192,7 +193,7 @@ And we can keep doing this for every linkage group. However, another alternative
 ## Multidimensional Scale (MDS) by MDSMap + MAPpoly
 
 MDSMap implements the MDS algorithm, and MAPpoly has a nice wrapper function called `mds_mappoly`. This function only needs the recombination fraction matrix estimated by R/qtl, and it returns a new order that can be used by `switch.order()` R/qtl function to yield a newly ordered linkage group.\
-First, we need to install MAPpoly package and use the function below to get the order given by the MDS algorithm for a chosen linkage group. You need to run it first so it becomes available into R before you actually use it:
+First, we need to install `MAPpoly package` and use the function below to get the order given by the MDS algorithm for a chosen linkage group. You need to run it first so it becomes available into R before you actually use it:
 
 ```{r}
 library(mappoly)
@@ -229,16 +230,9 @@ for(i in 1:10) {
   mds.ord <- getMDSorder(cross = maize.mds, chr = c)
   maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord, maxit = 10000, tol=1e-5)
   plotRF(maize.mds, chr=c, col.scheme = "redblue")
-  pull.map(maize.mds, chr = c)
-  (loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))}
-```
-
-```{r}
-pull.map(maize.mds, chr = c)
-```
-
-```{r}
-loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik")
+  print(pull.map(maize.mds, chr = c))
+  print(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
+}
 ```
 
 ```{r}
