@@ -9,17 +9,32 @@ editor_options:
 
 # Linkage map construction
 
-```{r}
-library(qtl)
-pop3 <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
-```
+To start with the analysis, we load the data (here, we are using the recombinant inbred line **population Z003**) using the function `read.cross()` , and estimate the pairwise recombination fractions (and their respective LOD scores) using the function `est.rf()`:
 
 ```{r}
-maize <- est.rf(cross = pop3)
+library(qtl)
+maize <- read.cross(format="csv", file="data/population_Z003.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
+```
+
+1: The exclusion of remaining heterozygotes in a RIL population (code==2 is the same as genotype=1); 2: The fact that the map is not estimated yet, so qtl package interprets each marker 10 cM apart (which is clearly wrong and we'll fix it).
+
+```{r}
+maize <- est.rf(cross = maize)
 plotRF(maize, col.scheme = "redblue")
 ```
 
+From the `plotRF()` function, we notice that 1106 markers have not been assigned to linkage groups yet. In practice, it is recommended to check marker missing data and segregation distortion before grouping, but we will skip it for the sake of time here.
+
 ### Marker grouping
+
+Once we have the pairwise recombination fraction estimates, we can try to see which markers are in the same linkage group. In order to do so, we need to provide the maximum recombination fraction (`max.rf` argument) and minimum LOD score (`min.lod` argument). This values are provided to the function `formLinkageGroups()` and they are used to see whether two markers are linked or not while avoiding false positives. We will show where these values come from, but you can use them directly in your analysis.\
+For `max.rf` , we can use something around 0.38, which is the value maximum recombination fraction of 0.50 when converted via Kosambi map function:
+
+$$ 
+m_ij = \frac{1}{4} log \binom {1+2r_ij}{1-2r_ij}
+$$
+
+A recombination fraction as big as 0.50 means that two markers are independently segregating (i.e. these two markers are not linked). See below:
 
 ```{r}
 max.rf <- 0.38
@@ -49,7 +64,7 @@ Now, it is time to see how many linkage groups we have. First, we run the functi
 
 ```{r}
 maize <- formLinkageGroups(maize, max.rf = 0.38, min.lod = 6.25, reorgMarkers = TRUE)
-#table(maize[,2])
+table(lg[,2])
 ```
 
 We note that there are 10 linkage groups (as expected for maize). Now, we can use `reorgMarkers = TRUE` and update our cross object named maize with each marker numbered according to the linkage group it belongs
@@ -57,6 +72,8 @@ We note that there are 10 linkage groups (as expected for maize). Now, we can us
 ```{r}
 plotRF(maize, col.scheme = "redblue")
 ```
+
+The heatmap shows grouped but not yet ordered markers within each linkage group
 
 ## Marker ordering
 
@@ -75,98 +92,23 @@ maize.bb2 <- maize
 loglik.bb1 <- loglik.bb2 <- c()
 ```
 
-**Linkage group 1**
+**Linkage groups**
 
 The object c stores the number of the chromosome under evaluation.
 
-```{r}
-c <- 1
-plotRF(maize, chr=c, col.scheme="redblue")
-
-```
-
-The argument `chr` let us take a closer look into the heatmap of a specific chromosome, whose markers are clearly not ordered
-
-```{r}
-maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
-plotRF(maize.bb1, chr = c, col.scheme = "redblue")
-```
-
-```{r}
-pull.map(maize.bb1, chr = c)
-```
-
-```{r}
-(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map,"loglik"))
-```
-
-```{r}
-maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
-plotRF(maize.bb2, chr = c, col.scheme = "redblue")
-
-```
-
-```{r}
-pull.map(maize.bb2, chr = c)
-```
-
-**Linkage group 2**
-
-```{r}
-c <- 2
-plotRF(maize, chr=c, col.scheme = "redblue")
-```
-
-```{r}
-maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
-pull.map(maize.bb1, chr = c)
-```
-
-```{r}
-(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
-```
-
-```{r}
-maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
-pull.map(maize.bb2, chr = c)
-```
-
-```{r}
-plotRF(maize.bb2, chr = c, col.scheme = "redblue")
-```
-
-```{r}
-(loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
-```
-
-#### **Linkage group 3**
-
-```{r}
-c <- 3
-plotRF(maize, chr=c, col.scheme = "redblue")
-maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
-pull.map(maize.bb1, chr = c)
-plotRF(maize.bb1, chr = c, col.scheme = "redblue")
-(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
-maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
-pull.map(maize.bb2, chr = c)
-(loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
-
-```
-
-**Linkage group 4**
+The argument `chr` let us take a closer look into the `heatmap` of a specific chromosome, whose markers are clearly not ordered
 
 ```{r}
 for(i in 1:10) {
   c <- i
   plotRF(maize, chr=c, col.scheme = "redblue")
   maize.bb1 <- orderMarkers(cross = maize.bb1, chr=c, use.ripple = FALSE, map.function="kosambi")
-  pull.map(maize.bb1, chr = c)
+  print(pull.map(maize.bb1, chr = c))
   plotRF(maize.bb1, chr = c, col.scheme = "redblue")
-  (loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
+  print(loglik.bb1[c] <- attr(maize.bb1$geno[[c]]$map, "loglik"))
   maize.bb2 <- orderMarkers(cross = maize.bb2, chr=c, use.ripple = FALSE, map.function="kosambi")
-  pull.map(maize.bb2, chr = c)
-  (loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
+  print(pull.map(maize.bb2, chr = c))
+  print(loglik.bb2[c] <- attr(maize.bb2$geno[[c]]$map, "loglik"))
 }
 ```
 
@@ -207,7 +149,7 @@ Now, we can select the best order so far, that we can still try to improve by ma
 
 **Linkage group 1**
 
-From the map summary tables, we notice that from the first run of Branch-and-Bound (`maize.bb1`) provided a better map than the second run (-2697>-2711 ) even though its length was slightly greater (215>214 ).
+From the map summary tables, we notice that from the first run of Branch-and-Bound (`maize.bb1`) provided a better map than the second run (-2697\>-2711 ) even though its length was slightly greater (215\>214 ).
 
 ```{r}
 plotRF(maize.bb1, chr=1, col.scheme = "redblue")
@@ -215,7 +157,7 @@ plotRF(maize.bb1, chr=1, col.scheme = "redblue")
 
 By looking at its `heatmap`, there seems to be small inversions, but no bigger inversions that can be easily corrected manually, so we keep it as is. Small inversions can be fixed by the function `ripple()`. However, this function is not well optimized in R/qtl for many markers, so we can avoid it at this point.\
 **Linkage group 2**\
-For linkage group 2, the first run also provided greater log-likelihood (-2006>-2016), with a length of 259cM and a gap as big as 91 cM, so we need to fix it. From the heatmap, we notice that there are three subgroups of markers, where the one in the middle seems misplaced. We locate the markers on each side by looking at the major gaps.
+For linkage group 2, the first run also provided greater log-likelihood (-2006\>-2016), with a length of 259cM and a gap as big as 91 cM, so we need to fix it. From the heatmap, we notice that there are three subgroups of markers, where the one in the middle seems misplaced. We locate the markers on each side by looking at the major gaps.
 
 ```{r}
 plotRF(maize.bb1, chr = 2, col.scheme = "redblue")
@@ -313,23 +255,12 @@ plotRF(maize.mds, col.scheme = "redblue")
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
-
-
 \
-
-
-
-\
-
-
-
-\
-
