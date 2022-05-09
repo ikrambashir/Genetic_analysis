@@ -1,0 +1,235 @@
+---
+title: "week-9: Single marker analysis (SMA), interval mapping (IM) and composite interval mapping (CIM) in a maize RIL population"
+author: "Bashir I."
+date: '2022-05-05'
+output: html_document
+---
+
+```{r}
+library(qtl)
+load("maize_mds.RData")
+```
+
+```{r}
+summaryMap(maize.mds)
+```
+
+```{r}
+plotMap(maize.mds)
+```
+
+```{r}
+plotRF(maize.mds, col.scheme = "redblue")
+```
+
+SMA
+
+```{r}
+maize.mr <- scanone(maize.mds, pheno.col = "PlantHeight", method = "mr")
+```
+
+```{r}
+plot(maize.mr, type = "p", main = "Single marker analysis (SMA)")
+```
+
+```{r}
+summary(maize.mr)
+```
+
+```{r}
+maize.perm.mr <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "mr",
+    n.perm = 1000, verbose = FALSE)
+```
+
+```{r}
+summary(maize.perm.mr, alpha = 0.05)
+```
+
+```{r}
+maize.mr.sig <- summary(maize.mr, perms = maize.perm.mr, alpha = 0.05)
+maize.mr.sig
+```
+
+IM
+
+```{r}
+maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
+```
+
+```{r}
+maize.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
+summary(maize.im)
+```
+
+```{r}
+maize.perm.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
+    n.perm = 1000)
+```
+
+```{r}
+summary(maize.perm.im, alpha = 0.05)
+```
+
+```{r}
+plot(maize.im, col = "red", main = "Interval mapping (IM)")
+add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
+```
+
+```{r}
+plot(maize.mr, maize.im, type = c("p", "l"), col = c("black", "red"), main = "SMA versus IM")
+add.threshold(maize.mr, perms = maize.perm.mr, alpha = 0.05, lty = 2, col = "black")
+add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
+legend("topright", legend = c("SMA", "IM"), lty = c(2, 1), col = c("black", "red"))
+```
+
+```{r}
+maize.im.sig <- summary(maize.im, perms = maize.perm.im, alpha = 0.05)
+maize.im.sig
+```
+
+```{r}
+chr <- maize.im.sig$chr
+chr
+```
+
+```{r}
+pos <- maize.im.sig$pos
+pos
+```
+
+```{r}
+maize.mds <- sim.geno(cross = maize.mds, step = 1)
+maize.im.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.im.qtl
+```
+
+```{r}
+maize.im.fit.Q1 <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl, ormula = y ~ Q1, get.ests = TRUE)
+summary(maize.im.fit.Q1)
+```
+
+```{r}
+maize.im.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl,formula = y ~ Q1 + Q2 + Q3, get.ests = TRUE)
+summary(maize.im.fit)
+```
+
+```{r}
+save.image("maize_im.RData")
+```
+
+CIM
+
+```{r}
+maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
+    sqrt(nind(maize.mds)), window = 10)
+maize.cim15 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
+    sqrt(nind(maize.mds)), window = 15)
+maize.cim20 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
+    sqrt(nind(maize.mds)), window = 20)
+maize.cimInf <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
+    n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf)
+```
+
+```{r}
+summary(maize.cim10)
+```
+
+```{r}
+summary(maize.cim15)
+```
+
+```{r}
+summary(maize.cim20)
+```
+
+```{r}
+summary(maize.cimInf)
+```
+
+```{r}
+maize.perm.cim <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
+    n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf, n.perm = 1000)
+```
+
+```{r}
+summary(maize.perm.cim, alpha = 0.05)
+```
+
+```{r}
+summary(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
+```
+
+```{r}
+summary(maize.cim15, perms = maize.perm.cim, alpha = 0.05)
+```
+
+```{r}
+summary(maize.cim20, perms = maize.perm.cim, alpha = 0.05)
+```
+
+```{r}
+summary(maize.cimInf, perms = maize.perm.cim, alpha = 0.05)
+```
+
+```{r}
+plot(maize.cim10, maize.cim15, maize.cimInf, col = c("blue", "orange", "cyan"), main = "Composite interval mapping (CIM)")
+add.threshold(maize.cim, perms = maize.perm.cim, alpha = 0.05)
+legend("topright", legend = c("ws = 10", "ws = 15", "ws = Inf"), lty = 1, col = c("blue",
+    "orange", "cyan"))
+```
+
+```{r}
+plot(maize.im, maize.cim10, maize.cimInf, col = c("red", "blue", "cyan"), main = "IM versus CIM")
+add.threshold(maize.cim, perms = maize.perm.cim, alpha = 0.05)
+add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
+legend("topright", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1,
+    col = c("red", "blue", "cyan"))
+```
+
+```{r}
+plot(maize.im, maize.cim10, maize.cimInf, col = c("red", "blue", "cyan"), chr = c(1,
+    2, 3, 7), main = "IM versus CIM")
+add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
+add.threshold(maize.cim10, perms = maize.perm.cim, alpha = 0.05, col = "black")
+add.cim.covar(maize.cimInf, chr = c(1, 2, 3, 7), col = "green")
+legend("topleft", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1, col = c("red",
+    "blue", "cyan"))
+```
+
+```{r}
+maize.cim.sig <- summary(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
+maize.cim.sig
+```
+
+```{r}
+which(maize.cim10$lod[maize.cim10$chr == 1] > 7.39)
+```
+
+```{r}
+maize.cim10$lod[which(maize.cim10$lod[maize.cim10$chr == 1] > 7.39)]
+```
+
+```{r}
+maize.cim10$pos[which(maize.cim10$lod[maize.cim10$chr == 1] > 7.39)]
+```
+
+```{r}
+chr <- c(1, maize.cim.sig$chr)
+pos <- c(198, maize.cim.sig$pos)
+```
+
+```{r}
+maize.mds <- sim.geno(maize.mds, step = 1)
+maize.cim.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.cim.qtl
+```
+
+```{r}
+maize.cim.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.cim.qtl,
+    formula = y ~ Q1 + Q2 + Q3 + Q4, get.ests = TRUE)
+summary(maize.cim.fit)
+```
+
+```{r}
+save.image("maize_mds.RData")
+```

@@ -1,0 +1,388 @@
+---
+title: "Week_8"
+author: "Bashir,I. (2022)"
+date: "09/05/2022"
+output: html_document
+editor_options: 
+  markdown: 
+    wrap: 72
+  chunk_output_type: console
+---
+
+## Interval Mapping (IM)
+
+Interval Mapping (IM) is a QTL mapping method that allows the systematic
+search for QTL along a linkage map, including the region between two
+markers, which were not directly scored. The strategy here is to
+consider the QTL genotype as missing data, and use the flanking markers
+to infer the QTL genotype probability. The way we compute QTL genotype
+probabilities conditional on the available data considers the multipoint
+information from the genetic map. Then, we fit a linear model every
+position along the genetic map, and test whether there is a QTL or not.
+In order to perform the test statistics, we need to estimate the
+parameters from the model. The two most frequently used methods for
+estimating the linear regression parameters in IM analyses are:
+
+1.  The exact method: maximum likelihood estimators, using
+    Expectation-Maximization (EM) algorithm
+
+2.  An approximation method: least squares estimators, using Haley-Knott
+    (HK) regression
+
+Let us revisit our mouse data to see how the HK regression (which is
+quicker and works relatively well) can be implemented.
+
+## Backcross genetic model
+
+The above-mentioned tests are, in fact, all derived from the simple
+linear regression model below:
+$$y_i = \mu + \beta^* x^*_{i} + \varepsilon_i$$ where:
+$\begin{align*} i &= \{1,2,\dots,N\} \\ y_i &= \text{phenotypic value for individual } i \\ \mu &= \text{intercept} \\ x_{i}^* &= \begin{cases} 0 & \text{if individual } i \text{ is } q_iq_i \text{ with probability } p_{0i} \\ 1 & \text{if
+individual } i \text{ is } Q_iq_i \text{ with probability } p_{1i} \\ \end{cases} \\ \beta^* &= \text{linear regression
+coefficient for genetic effects}\\ \varepsilon_i &\sim \mathcal{N}(0, \sigma^2) \end{align*}$
+The hypothesis under testing is $H_0: \beta^* = 0$ versus
+$H_1: \beta^* \neq 0$, meaning that we need to compute the conditional
+probabilities of QTL genotypes ($p_{0i}$ and $p_{1i}$) and estimate the
+effect of the putative QTL ($\beta^*$) first, then perform the test.
+
+## Conditional probabilities of QTL genotypes
+
+We will use the mouse data as an example for IM. So, we will load the
+data and remove the first row:
+
+```{r}
+mouse <- read.csv("data/mouse.csv")
+mouse <- mouse[-c(1),] # excluding the first row just to keep phenotype plus marker data only
+head(mouse)
+```
+
+In order to make it simpler, we will round the map positions of the
+linkage group 1 of mouse to the integers (49 cM) and create a grid from
+0 to 49, which will provide the basis for IM. Then, we will convert from
+Kosambi map distances back to recombination fractions:
+
+```{r}
+map <- c(0, 7, 8, 9, 12, 15, 19, 23, 24, 26, 28, 31, 38, 49)
+all <- c(0:49)
+rf.map <- 0.5*tanh(map/49)
+rf.all <- 0.5*tanh(all/49)
+```
+
+```{r}
+layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
+image(t(as.matrix(sort(mouse[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE),axes = FALSE, xlab = "BW", ylab = "Individuals (N = 103)")
+image(t(as.matrix(mouse[order(mouse[,1]),2:ncol(mouse)])), col = c("yellow", "blue"),axes =FALSE, xlab = "Markers (M = 14)")
+axis(1, at=0:13/13, labels=c(1:14))
+```
+
+Now, we are going to create a new mouse dataset with the including the
+empty position between two\
+consecutive markers:
+
+```{r}
+mouse.new <- matrix(NA, nrow = 103, ncol = length(all)); dim(mouse.new)
+```
+
+```{r}
+for (c in 1:14) mouse.new[,map[c]+1] <- mouse[,c+1]
+head(mouse.new)
+```
+
+If we plot the heatmaps for mouse.new we observe the missing information
+in between markers:
+
+```{r}
+layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
+image(t(as.matrix(sort(mouse[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "BW", ylab = "Individuals (N = 103)")
+image(t(as.matrix(mouse.new[order(mouse[,1]),])), col = c("yellow", "blue"), xlab = "Markers(M = 14)", axes = F)
+axis(1, at=(map)/49, labels=(map))
+```
+
+If we knew where the QTL was in a interval, we would just need to
+compute the conditional probability there. However, since we do not
+know, we need to compute it at every cM position along a genetic map.
+Consider two consecutive markers \\(A\\) and \\(B\\), with a putative
+QTL \\(Q\\) between them:\
+The measure \\(\\theta\\)\\ is defined as:\
+\\[\\theta = \\frac{r_1}{r}\\]\
+So we change \\(r_1\\) (by 0.01 increments) and estimate
+\\(P(qq\|A,B)\\) and \\(P(Qq\|A,B)\\) such that we have:\
+
++----------------------+---------------------+----------------------+
+| Marker               | \\(P(qq\|A,B)\\)    | \\(P(Qq\|A,B)\\)     |
++======================+=====================+======================+
+| \\(aabb\\)           | \\(1\\)             | \\(0\\)              |
++----------------------+---------------------+----------------------+
+| \\(aaBb\\)           | \\(1-\\theta\\)     | \\(\\theta\\)        |
++----------------------+---------------------+----------------------+
+| \\(Aabb\\)           | \\(\\theta\\)       | \\(1-\\theta\\)      |
++----------------------+---------------------+----------------------+
+| \\(AaBb\\)           | \\(0\\)             | \\(1\\)              |
++----------------------+---------------------+----------------------+
+
+```{r}
+theta <- 0
+for(m in 2:14) {
+  theta <- c(theta, (rf.all[rf.all > rf.map[m-1] & rf.all <= rf.map[m]]-rf.map[m-1]     )/(rf.map
+[m]-rf.map[m-1]))}
+theta
+```
+
+We use some if s to make sure we use either 0 , 1 or something in
+between depending on the individual genotypes for \\(A\\) and \\(B\\)
+loci:
+
+```{r}
+for(i in 1:103) {
+  for(m in 2:14) {
+    if(mouse.new[i,map[m]+1] == mouse.new[i,map[m-1]+1]) {
+      mouse.new[i,(map[m-1]+2):(map[m])] <- mouse.new[i,map[m]+1]
+    } else if (mouse.new[i,map[m]+1] > mouse.new[i,map[m-1]+1]) {
+      mouse.new[i,(map[m-1]+2):(map[m])] <- theta[(map[m-1]+2):(map[m])]
+    } else if (mouse.new[i,map[m]+1] < mouse.new[i,map[m-1]+1]) {
+      mouse.new[i,(map[m-1]+2):(map[m])] <- 1-theta[(map[m-1]+2):(map[m])]
+    }
+  }
+}
+round(head(mouse.new), 2)
+```
+
+```{r}
+layout(matrix(c(1,2,2,2), nrow = 1, ncol = 4, byrow = TRUE))
+image(t(as.matrix(sort(mouse[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = "BW", ylab = "Individuals (N = 103)")
+image(t(as.matrix(mouse.new[order(mouse[,1]),])), col = colorRampPalette(c("yellow", "blue")) (10), xlab = "Markers (M = 14)", axes = F)
+axis(1, at=(map)/49, labels=map)
+```
+
+Haley-Knott regression\
+We use the R function lm() to run the HK regression, which is the same
+function that we used for SMA.\
+However, instead of 14 positions (on each marker), we are going to test
+50 positions (14 markers + 36 pseudomarkers):
+
+```{r}
+res.mouse.hk <- matrix(NA, nrow = 50, ncol = 7)
+for(m in 1:50) {
+  mouse.hk <- summary(lm(mouse$BW ~ mouse.new[,m]))
+  LOD <- (103/2) * log10(mouse.hk$fstatistic[1] * (1 / (103-1-1)) + 1)
+  res.mouse.hk[m,] <- c(mouse.hk$coefficients[,1], mouse.hk$coefficients[2,3:4], mouse.hk$fstatistic[1], LOD, mouse.hk$r.squared)
+}
+colnames(res.mouse.hk) <- c("Intercept", "Effect", "t value", "P value", "F value", "LOD score", "R-squared")
+rownames(res.mouse.hk)[map+1] <- colnames(mouse)[2:15]
+knitr::kable(res.mouse.hk)
+```
+
+We can now use the function plot() to visualize the test statistics in
+terms of LOD scores (and connect the\
+dots with a line):
+
+```{r}
+plot(res.mouse.hk[,"LOD score"], ylab = "LOD score", xlab = "Markers", main = "BW")
+lines(res.mouse.hk[,"LOD score"])
+```
+
+## Permutation tests
+
+Permutation tests are an easy -- yet very conservative -- way of define
+a critical value to declare QTL. It consists of running the QTL model at
+least one thousand of times, but every time we break the
+phenotypegenotype association (i.e. we simulate the null hypothesis of
+no QTL). At the end, we will have a distribution of the maximum LOD
+score that we could observe when we should not expect to find any QTL.
+Despite this assumption, we will see high LOD scores by chance. The
+method proceeds as follows: 1. Randomly pair an individual marker
+genotype with another individuals trait phenotype to generate permuted
+sample of the data. 2. Perform interval mapping analysis on the permuted
+sample. 3. Do it for a number of times (e.g. 1,000 times) to obtain an
+empirical distribution of the test statistic at the null hypothesis and
+from it to determine a 95% significance value (i.e. $\alpha=0.05$) for
+the test in the original data analysis. 4. If the test in the original
+data in a genomic region is higher that this critical value, a QTL is
+declared. For example, see how the trait BW looks like after five
+permutations:
+
+```{r}
+layout(matrix(c(1,2,3,4,5,6,6,6), nrow = 1, ncol = 8, byrow = TRUE))
+for(i in 1:5) {image(t(as.matrix(sample(mouse[,1]))), col = rainbow(n = 256, end = 2/3, rev = TRUE), axes = FALSE, xlab = paste0("BW", i))}
+image(t(as.matrix(mouse.new[order(mouse[,1]),])), col = colorRampPalette(c("yellow", "blue")) (10), xlab = "Markers (M = 14)", ylab = "Individuals (N = 103)", axes = F)
+axis(1, at=(map)/49, labels=map)
+```
+
+We will run a permutation test for a backcross population (mouse data)
+as example, but the same principle holds for any other populations (like
+the \\(F_2\\) maize data):
+
+```{r}
+set.seed(123) # makes sure the results are reproducible
+max.LOD <- numeric(1000)
+for (i in 1:1000) {
+  LRT <- numeric(50)
+  ind.perm <- sample(1:103)
+  null.mod <- lm(BW ~ 1, data = mouse)
+  for(m in 1:50) {
+    full.mod <- lm(mouse$BW[ind.perm] ~ 1 + mouse.new[, m])
+    LRT[m] <- -2 * (logLik(null.mod) - logLik(full.mod))
+  }
+  LOD <- LRT/(2*log(10))
+  max.LOD[i] <- max(LOD)
+}
+```
+
+The sorted LOD scores allows us to see which values can be found at the
+5% of the highest LODs, which\
+gives us the threshold for BW in this mouse backcross population:
+
+```{r}
+thres.perm <- sort(max.LOD, decreasing = TRUE)[50] # 5% of 1000 sorted LOD scores
+thres.perm
+```
+
+By plotting the histogram of maximum LOD score obtain from each
+permutation, we have:
+
+```{r}
+hist(max.LOD)
+abline(v = thres.perm, lty = 2)
+legend("topright", legend = "alpha = 0.05", lty = 2)
+```
+
+Note that permutations tests should be run for each trait, separately,
+such that it uses the very trait distribution for the tests. For BW in
+the mouse data:
+
+```{r}
+plot(res.mouse.hk[,"LOD score"], ylab = "LOD score", xlab = "Markers", main = "BW", ylim = c(0,6))
+lines(res.mouse.hk[,"LOD score"])
+abline(h = thres.perm, lty = 2)
+legend("topright", legend = "alpha = 0.05", lty = 2)
+```
+
+## Interval Mapping (IM) with R/qtl 
+
+Now, we will use the R/qtl package function to perform SMA. In order to
+do so, we first need to load the R/qtl package:
+
+```{r}
+# install.packages("qtl")
+library(qtl)
+```
+
+## Mouse Data
+
+We need to load the dataset using the read.cross() function. We also
+estimate the map with the marker\
+order given by the data set (such that we have a map reference for the
+tests, even though the map is not\
+needed):
+
+```{r}
+mouse <- read.cross(format="csv", file="data/mouse.csv", genotypes=c("0", "1"), crosstype = "bc")
+```
+
+```{r}
+mouse.map <- est.map(mouse, error.prob=0, map.function = "kosambi")
+mouse <- replace.map(mouse, mouse.map)
+pull.map(mouse)
+```
+
+```{r}
+## save(mouse, file="mouse_map.RData")
+```
+
+After estimating the genetic map, we need to calculate the QTL genotype
+probability, conditional on the\
+available data. The step argument defines the step size in which the
+probability needs to be calculated\
+(e.g. every 1 cM):
+
+```{r}
+## load("mouse_map.RData")
+mouse <- calc.genoprob(mouse, step = 1)
+```
+
+The function to perform IM is scanone() - the same for any other
+single-QTL model -, but we need to define the estimation method as em
+(maximum likelihood via Expectation-Maximization algorithm) or hk (least
+squares via Haley-Knott regression). In order to know the critical value
+to declare QTL using permutations, we first sun the `scanone()` function
+with the argument n.perm = 1000 (number of permutations):
+
+```{r}
+mouse.perm.em <- scanone(mouse, pheno.col = "BW", method = "em", n.perm = 1000, verbose = FALSE)
+mouse.perm.hk <- scanone(mouse, pheno.col = "BW", method = "hk", n.perm = 1000, verbose = FALSE)
+```
+
+The `summary()` function shows the LOD threshold for a given
+\\(\\alpha\\) level:
+
+```{r}
+summary(mouse.perm.em, alpha = 0.05)
+```
+
+```{r}
+summary(mouse.perm.hk, alpha = 0.05)
+```
+
+Now, we can run both em and hk methods using the mouse data:
+
+```{r}
+mouse.em <- scanone(mouse, pheno.col = "BW", method = "em")
+mouse.hk <- scanone(mouse, pheno.col = "BW", method = "hk")
+```
+
+Note that if more than one phenotype is present, one needs to define
+what is the column position that the phenotype of interest is.\
+The summary() function can be used to show the QTL peak location given a
+certain \\(\\alpha\\) level\
+(e.g. alpha = 0.05 ) and the results from the permutation tests
+(argument perms ):
+
+```{r}
+summary(mouse.em, perms = mouse.perm.em, alpha = 0.05)
+```
+
+```{r}
+summary(mouse.hk, perms = mouse.perm.hk, alpha = 0.05)
+```
+
+A `plot()` function allows the LOD scores for each marker on chromosome
+1 for the mouse data, calculated by marker regression, to be graphically
+shown.
+
+```{r}
+plot(mouse.em, mouse.hk, ylab = "LOD score", main = "BW", col = c("red", "blue"), lwd = 3)
+add.threshold(mouse.em, perms = mouse.perm.em, col = "red")
+add.threshold(mouse.hk, perms = mouse.perm.hk, col = "blue")
+legend("topright", legend = c("EM", "HK"), lty = 1, lwd = 3, col = c("red", "blue"))
+```
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
