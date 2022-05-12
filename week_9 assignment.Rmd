@@ -1,0 +1,10 @@
+---
+title: "Week_9 Assignment"
+author: "Bashir,I. (2022)"
+date: "12/05/2022"
+output: html_document
+---
+
+#### **Assignment - [QTL mapping III: composite interval mapping (CIM)](https://ava.ufv.br/mod/resource/view.php?id=146487 "QTL mapping III: composite interval mapping (CIM)")**
+
+Use the linkage map to perform composite interval mapping (CIM) for the trait "PlantHeight". Do not forget to run permutation tests to identify the LOD threshold to declare QTL at an alpha level of 0.05. Results for the QTL peak within each QTL region should be presented as a table showing QTL chromosome and location of its peak, their effects, associated LOD scores, and R-squared.

@@ -1,0 +1,58 @@
+---
+title: "week_8 assignment"
+author: "Bashir,I. (2022)"
+date: "12/05/2022"
+output: html_document
+---
+
+Used the linkage map to perform interval mapping (IM) for the trait "PlantHeight". Do not forget to run permutation tests to identify the LOD threshold to declare QTL at an alpha level of 0.05. Results for the QTL peak within each QTL region should be presented as a table showing QTL chromosome and location of its peak, their effects, associated LOD scores, and R-squared.
+
+## Genetic map of maize population z003
+
+```{r}
+library(qtl)
+load("maize003_mds.Rdata")
+```
+
+## QTL genotype proability
+
+```{r}
+maize <- calc.genoprob(maize, step = 1)
+```
+
+## Permutation test
+
+```{r}
+maize.perm.em <- scanone(maize, pheno.col = "PlantHeight", method = "em", n.perm = 1000, verbose = FALSE)
+maize.perm.hk <- scanone(maize, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, verbose = FALSE)
+```
+
+### Summary of LOD threshold
+
+```{r}
+summary(maize.perm.em, alpha = 0.05)
+summary(maize.perm.hk, alpha = 0.05)
+```
+
+**Maximum likelihood via Expectation-Maximization algorithm (em) and least square via Haley-Knott regression (hk)**
+
+```{r}
+maize.em <- scanone(maize, pheno.col = "PlantHeight", method = "em")
+maize.hk <- scanone(maize, pheno.col = "PlantHeight", method = "hk")
+```
+
+### Summary of LOD threshold for a given $a$ level
+
+```{r}
+summary(maize.em, perms = maize.perm.em, alpha = 0.05)
+summary(maize.hk, perms = maize.perm.hk, alpha = 0.05)
+```
+
+**Plotting of LOD scores for each marker in chromosomes**
+
+```{r}
+plot(maize.em, maize.hk, ylab = "LOD score", main = "PlantHeight", col = c("red", "blue"), lwd = 3)
+add.threshold(maize.em, perms = maize.perm.em, col = "red")
+add.threshold(maize.hk, perms = maize.perm.hk, col = "blue")
+legend("topright", legend = c("EM", "HK"), lty = 1, lwd = 3, col = c("red", "blue"))
+```

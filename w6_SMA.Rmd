@@ -148,7 +148,7 @@ Now, we can select the best order so far, that we can still try to improve by ma
 
 **Linkage group 1**
 
-From the map summary tables, we notice that from the first run of Branch-and-Bound (`maize.bb1`) provided a better map than the second run (-2697\>-2711 ) even though its length was slightly greater (215\>214 ).
+From the map summary tables, we notice that from the first run of Branch-and-Bound (`maize.bb1`) provided a better map than the second run (-2697>-2711 ) even though its length was slightly greater (215>214 ).
 
 ```{r}
 plotRF(maize.bb1, chr=1, col.scheme = "redblue")
@@ -156,7 +156,7 @@ plotRF(maize.bb1, chr=1, col.scheme = "redblue")
 
 By looking at its `heatmap`, there seems to be small inversions, but no bigger inversions that can be easily corrected manually, so we keep it as is. Small inversions can be fixed by the function `ripple()`. However, this function is not well optimized in R/qtl for many markers, so we can avoid it at this point.\
 **Linkage group 2**\
-For linkage group 2, the first run also provided greater log-likelihood (-2006\>-2016), with a length of 259cM and a gap as big as 91 cM, so we need to fix it. From the heatmap, we notice that there are three subgroups of markers, where the one in the middle seems misplaced. We locate the markers on each side by looking at the major gaps.
+For linkage group 2, the first run also provided greater log-likelihood (-2006>-2016), with a length of 259cM and a gap as big as 91 cM, so we need to fix it. From the heatmap, we notice that there are three subgroups of markers, where the one in the middle seems misplaced. We locate the markers on each side by looking at the major gaps.
 
 ```{r}
 plotRF(maize.bb1, chr = 2, col.scheme = "redblue")

@@ -6,7 +6,7 @@ output: html_document
 editor_options: 
   markdown: 
     wrap: 72
-  chunk_output_type: console
+  chunk_output_type: inline
 ---
 
 ## Interval Mapping (IM)
@@ -108,17 +108,12 @@ The measure \\(\\theta\\)\\ is defined as:\
 So we change \\(r_1\\) (by 0.01 increments) and estimate
 \\(P(qq\|A,B)\\) and \\(P(Qq\|A,B)\\) such that we have:\
 
-+----------------------+---------------------+----------------------+
-| Marker               | \\(P(qq\|A,B)\\)    | \\(P(Qq\|A,B)\\)     |
-+======================+=====================+======================+
-| \\(aabb\\)           | \\(1\\)             | \\(0\\)              |
-+----------------------+---------------------+----------------------+
-| \\(aaBb\\)           | \\(1-\\theta\\)     | \\(\\theta\\)        |
-+----------------------+---------------------+----------------------+
-| \\(Aabb\\)           | \\(\\theta\\)       | \\(1-\\theta\\)      |
-+----------------------+---------------------+----------------------+
-| \\(AaBb\\)           | \\(0\\)             | \\(1\\)              |
-+----------------------+---------------------+----------------------+
+| Marker     | \\(P(qq\|A,B)\\) | \\(P(Qq\|A,B)\\) |
+|------------|------------------|------------------|
+| \\(aabb\\) | \\(1\\)          | \\(0\\)          |
+| \\(aaBb\\) | \\(1-\\theta\\)  | \\(\\theta\\)    |
+| \\(Aabb\\) | \\(\\theta\\)    | \\(1-\\theta\\)  |
+| \\(AaBb\\) | \\(0\\)          | \\(1\\)          |
 
 ```{r}
 theta <- 0
@@ -257,7 +252,7 @@ abline(h = thres.perm, lty = 2)
 legend("topright", legend = "alpha = 0.05", lty = 2)
 ```
 
-## Interval Mapping (IM) with R/qtl 
+## Interval Mapping (IM) with R/qtl
 
 Now, we will use the R/qtl package function to perform SMA. In order to
 do so, we first need to load the R/qtl package:
@@ -356,33 +351,24 @@ add.threshold(mouse.hk, perms = mouse.perm.hk, col = "blue")
 legend("topright", legend = c("EM", "HK"), lty = 1, lwd = 3, col = c("red", "blue"))
 ```
 
-\
+#### **Assignment:** 
 
+Used the linkage map to perform interval mapping (IM) for the trait
+"PlantHeight". Do not forget to run permutation tests to identify the
+LOD threshold to declare QTL at an alpha level of 0.05. Results for the
+QTL peak within each QTL region should be presented as a table showing
+QTL chromosome and location of its peak, their effects, associated LOD
+scores, and R-squared.
 
-\
+```{r}
+load("maize003_mds.Rdata")
+```
 
+```{r}
+maize <- calc.genoprob(maize, step = 1)
+```
 
-\
-
-
-\
-
-
-\
-
-
-
-\
-
-
-
-\
-
-
-
-\
-
-
-
-\
-
+```{r}
+maize.perm.em <- scanone(maize, pheno.col = "PlantHeight", method = "em", n.perm = 1000, verbose = FALSE)
+maize.perm.hk <- scanone(maize, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, verbose = FALSE)
+```
