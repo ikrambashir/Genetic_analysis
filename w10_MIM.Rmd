@@ -1,0 +1,290 @@
+---
+title: "w10_MIM"
+author: "Bashir,I. (2022)"
+date: "16/05/2022"
+output: html_document
+---
+
+Multiple interval mapping (MIM) in a maize RIL population using R/qtl As we have previously constructed our map for population Z025. we just need to load the RData using the function load() :
+
+```{r}
+library(qtl)
+load("maize_mds.RData")
+```
+
+The functions `summaryMap()` , `plotMap()` and `plotRF()` are used here just to double check if we are using the right genetic map:
+
+```{r}
+summaryMap(maize.mds)
+```
+
+```{r}
+plotMap(maize.mds)
+```
+
+```{r}
+plotRF(maize.mds, col.scheme = "redblue")
+```
+
+Multiple QTL mapping
+
+Here, we are using the recombinant inbred line (RIL) population Z025, so these methods might not lead to the same results in your population.
+
+Add main effects manually
+
+R/qtl has several functions to deal with multiple-QTL models. We will focus on some of them that are more interesting for this specific dataset, but you might want to take a look on other functions from R/qtl tutorials available here ([https://rqtl.org/tutorials/),](https://rqtl.org/tutorials/),) especially this one ([<https://rqtl.org/tutorials/new_multiqtl.pdf>).](https://rqtl.org/tutorials/new_multiqtl.pdf).)
+
+makeqtl and fitqtl
+
+We will use the results from previous QTL run, namely composite interval mapping (CIM) from last week's class (see Week 9 tutorial ([https://ava.ufv.br/mod/resource/view.php?id=2905)).](https://ava.ufv.br/mod/resource/view.php?id=2905)).)\
+First, we can take a look at the object (previously named maize.cim10 ) from the CIM with window = 10 run:
+
+```{r}
+summary(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
+```
+
+```{r}
+plot(maize.cim10)
+add.threshold(maize.cim, perms = maize.perm.cim, alpha = 0.05)
+```
+
+We noticed that four peaks had LOD score greater than our CIM threshold of 7.39. However, only one peak was listed above (the one with the highest LOD score). One way to find the other positions is by looking at the maximum LOD score for positions towards the end of the chromosome 1 (position \> 150 cM)
+
+```{r}
+max(maize.cim10[maize.cim10$chr == 1 & maize.cim10$pos > 150, ])
+```
+
+```{r}
+chr <- c(1, 1, 2, 7)
+pos <- c(132.7, 198, 45.2, 52.3)
+```
+
+In order to build a multiple-QTL model, we need to use the function `calc.genoprob()` , then `makeqtl()` :
+
+```{r}
+maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
+maize.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl
+```
+
+```{r}
+plot(maize.qtl)
+```
+
+Then, we fit such a model using the fitqtl() function:
+
+```{r}
+maize.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.qtl,formula = y ~ Q1 + Q2 + Q3 + Q4, get.ests = TRUE)
+summary(maize.fit)
+```
+
+Note that the Drop one QTL at a time ANOVA table shows that all five QTL are highly significant, so we keep them in the model.
+
+refineqtl and plotLodProfile
+
+Every time we fit a new multiple-QTL model, it is recommended that we refine the QTL peak positions because there can be changes when testing each QTL conditional to the other QTL in the model. We perform this task using the function `refineqtl()` and plot the results using `plotLodProfile()` :
+
+```{r}
+maize.ref <- refineqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.qtl, formula = y ~ Q1 + Q2 + Q3 + Q4)
+```
+
+```{r}
+plotLodProfile(maize.ref)
+```
+
+Then, another round of `fitqtl()` will provide updated tests for the new positions:
+
+```{r}
+maize.fit2 <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.ref,formula = y ~ Q1 + Q2 + Q3 + Q4, get.ests = TRUE)
+summary(maize.fit2)
+```
+
+scantwo
+
+In order to add main or epistatic effects, we need to find out what the "stop rule" is. In R/qtl, such a rule is given by penalized LOD score for a model with more than one QTL (function scantwo ) provided by permutations ( n.perm = 1000 ). This function takes a lot of time to run:
+
+```{r}
+permo.2dim <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000)
+save(permo.2dim, file = "permo_2dim.RData")
+```
+
+It is always good to save permutation outputs due to the time these functions take to run, so you can use the results for the same trait later.\
+Now, we can see a summary of the object `permo.2dim` and compute the penalties that will be used for automatic multiple-QTL model search:
+
+```{r}
+load("permo_2dim.RData")
+summary(permo.2dim, alpha = 0.05)
+```
+
+```{r}
+penalties <- calc.penalties(permo.2dim)
+penalties
+```
+
+Thresholds derived from `scantwo` permutations (that is, for a two-dimensional, two-QTL genome scan) are used to calculate penalties on main effects and interactions. Look at `help(calc.penalties)` to learn more about the penalties. You can also find a detailed explanation on this criterion by Manichaikul et al. (2009).\
+In brief, we have that a penalized LOD score for main effects is given by: \$\\[pLOD_a = LOD(\\gamma) - T_m\|\\gamma\|\\] where \\(\\gamma\\) denotes a model, \\(LOD(\\gamma)\\) is LOD of \\(\\gamma\\) in relation to a null model (of no QTL), \\(\|\\gamma\|\\) is the number of QTL, and \\(T_m\\) is the penalty (in our case, the \\(\\alpha = 0.05\\) from permutation tests from a two-dimensional, two-QTL genome scan).\
+The penalized LOD score for interaction among QTL has the form: \\[pLOD_e = LOD(\\gamma) - T_m\|\\gamma\|\_m - T_i\|\\gamma\|\_i\\] where \\(\|\\gamma\|\_m\\) and \\(\|\\gamma\|\_i\\) are the number of QTL and pairwise interactions, respectively.
+
+Two other \\(pLOD\\)s are presented. One for the full model, \\(pLOD_f\\) ( full ) with the two QTL plus interaction and \\(pLOD_1\\) ( one ) for one QTL only (single-QTL scan).
+
+The authors propose that one could use either a "heavy" (derived from full ) or "light" (derived from fv1 ) penalty on the interaction effect when comparing, respectively, two-QTL model or single-QTL model with a full model (i.e. a model with two-QTL and its interaction term).
+
+addqtl\
+What about thesuggestive QTL on chromosome 3? If we want to verify if there are more QTL to be added to the model, we can use the function `addqtl()`:
+
+```{r}
+maize.add <- addqtl(maize.mds, pheno.col = "PlantHeight", qtl = maize.ref, formula = y ~ Q1 + Q2 + Q3 + Q4)
+max(maize.add)
+```
+
+A LOD \> 3 seems great enough to include this position on chromosome 3 as a QTL since the threshold for adding one main effect av1 = 3.06 ("light" LOD for main effects). So, let us add it to the model
+
+```{r}
+chr <- c(1, 1, 2, 3, 7)
+pos <- c(132.1, 195.9, 41, 127, 52.3)
+maize.qtl2 <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl2
+```
+
+```{r}
+plot(maize.qtl2)
+```
+
+Remember that when a QTL happen to be added, one might need to refine positions again using `refineqtl()` function:
+
+```{r}
+maize.ref2 <- refineqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.qtl2, formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5)
+```
+
+```{r}
+plotLodProfile(maize.ref2)
+```
+
+Then, a new run of `addqtl` can be carried out:
+
+```{r}
+maize.add2 <- addqtl(maize.mds, pheno.col = "PlantHeight", qtl = maize.ref2, formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5)
+max(maize.add2)
+```
+
+Because the LOD is lower than our threshold of 3.06, so we stop here and can try to add epistatic effects next
+
+Adding main effects automatically
+
+R/qtl also has a automatic function called `stepwiseqtl()` to build a multiple-QTL model from scratch by means of a stepwise model selection.\
+stepwiseqtl\
+The penalties for the penalized LOD scores can now be used by `stepwiseqtl`:
+
+```{r}
+maize.step <- stepwiseqtl(maize.mds, pheno.col = "PlantHeight", max.qtl = 6, method = "hk", penalties = penalties)
+```
+
+```{r}
+maize.step
+```
+
+Therefore, the same results were obtained as previously performed manually. A scheme with the steps to find the best model can be found below:
+
+![](images/1.png)
+Adding epistasis\
+In the `stepwiseqtl` run above, we have already tested for interactions between QTL in the model (and no interactions were found)
+addint\
+In the case of our manual search, interacting QTL have not been tested yet. One way of explicitly look for epistasis is by using the function `addint()` , so we use our maize.ref object:
+
+```{r}
+addint(maize.mds, pheno.col = "PlantHeight", qtl = maize.ref2, formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5)
+```
+
+Because all LODs were below 4.21 ( int LOD threshold from our permutations above), we determine that there is no evidence for epistasis among the QTL in the model
+
+scantwo
+
+Looking at epistatic interactions between QTL with main effects is very limiting. So, we can use the function `scantwo()` to look for evidences of interactions all over the genome. In addition, we should be able to separate pairs of linked QTL with such function.
+
+Because this is a very computationally intensive search, we use step = 2 to speed up the process a bit:
+
+```{r}
+maize.mds <- calc.genoprob(maize.mds, step = 2)
+maize.two <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk")
+save(maize.two, file = "maize_two.RData")
+```
+
+```{r}
+load("maize_two.RData")
+plot(maize.two, col.scheme = "redblue")
+```
+
+\
+
+```{r}
+
+```
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+
+\
+
+
+\
+
+
+\
+
+
+
+\
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+\
+
+
+
+\
+
+
+\
+
+
+
+\
+

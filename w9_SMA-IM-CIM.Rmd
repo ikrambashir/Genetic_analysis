@@ -5,10 +5,20 @@ date: '2022-05-05'
 output: html_document
 ---
 
+### QTL mapping
+
+Here, we are using the recombinant inbred line (RIL) population Z025, so these methods might not lead to the same results in your population
+
+**Load map previously estimated**
+
+As we have previously constructed our map (see Week 8 tutorial class), we just need to load the RData using the function `load()` :
+
 ```{r}
 library(qtl)
 load("maize_mds.RData")
 ```
+
+The functions `summaryMap()` , `plotMap()` and `plotRF()` are used here just to double check if we are using the right genetic map:
 
 ```{r}
 summaryMap(maize.mds)
@@ -24,26 +34,40 @@ plotRF(maize.mds, col.scheme = "redblue")
 
 SMA
 
+Our first analysis involves testing for associations between each marker and the trait "PlantHeight". We do so by running the function `scanone()` with method = "mr" , which stands for "marker regression":
+
 ```{r}
 maize.mr <- scanone(maize.mds, pheno.col = "PlantHeight", method = "mr")
 ```
+
+There are functions called `plot()` and `summary()` that can be applied to any QTL mapping object. The\
+function `plot()` combined with the argument type = "p" show the test statistic (LOD score) for each marker as points
 
 ```{r}
 plot(maize.mr, type = "p", main = "Single marker analysis (SMA)")
 ```
 
+The function summary shows the markers with the highest LOD score for each chromosome:
+
 ```{r}
 summary(maize.mr)
 ```
+
+Permutation tests can provide a critical value which can be used to declare QTL. In our case, we use\
+n.perm = 1000 , meaning that we are running 1,000 permutations:
 
 ```{r}
 maize.perm.mr <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "mr",
     n.perm = 1000, verbose = FALSE)
 ```
 
+The `summary()` function shows the LOD threshold for a given level:
+
 ```{r}
 summary(maize.perm.mr, alpha = 0.05)
 ```
+
+Finally, we can apply such a threshold and see how many QTL we have based on SMA:
 
 ```{r}
 maize.mr.sig <- summary(maize.mr, perms = maize.perm.mr, alpha = 0.05)
@@ -52,14 +76,20 @@ maize.mr.sig
 
 IM
 
+In order to run IM, we need to calculate the QTL genotype probability within marker intervals, conditional on the genetic map. We do so by using the function `calc.genoprob()` . The argument step = 1 defines the step size in which the probability needs to be calculated (in our case, every 1 cM):
+
 ```{r}
 maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
 ```
+
+The function to perform IM is `scanone()` - the same for SMA -, but we need to define the estimation method as em (maximum likelihood via Expectation-Maximization algorithm) or hk (least squares via Haley-Knott regression). We can run method = "hk" because it is faster and generally works well when compared to em :
 
 ```{r}
 maize.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
 summary(maize.im)
 ```
+
+In order to know the critical value to declare QTL using permutations, we first run the `scanone()` function with the arguments method = "hk" and n.perm = 1000 . Them the function `summary()` shows the LOD threshold for a given $a$ level (in our case, alpha = 0.05 ):
 
 ```{r}
 maize.perm.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
@@ -75,6 +105,8 @@ plot(maize.im, col = "red", main = "Interval mapping (IM)")
 add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
 ```
 
+A plot to compare two approaches:
+
 ```{r}
 plot(maize.mr, maize.im, type = c("p", "l"), col = c("black", "red"), main = "SMA versus IM")
 add.threshold(maize.mr, perms = maize.perm.mr, alpha = 0.05, lty = 2, col = "black")
@@ -82,10 +114,15 @@ add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
 legend("topright", legend = c("SMA", "IM"), lty = c(2, 1), col = c("black", "red"))
 ```
 
+Now, we can apply the threshold to our IM object, which gives a list of the QTL regions which are highly\
+significant:
+
 ```{r}
 maize.im.sig <- summary(maize.im, perms = maize.perm.im, alpha = 0.05)
 maize.im.sig
 ```
+
+Notice we can use `maize.im.sig` to extract the chromosomes ( chr ) and positions ( pos ) of our significant QTL:
 
 ```{r}
 chr <- maize.im.sig$chr
@@ -97,16 +134,22 @@ pos <- maize.im.sig$pos
 pos
 ```
 
+Finally, the `makeqtl()` and `fitqtl()` are used to show the QTL effect estimates for an RIL population based on an object derived from the function `sim.geno()` :
+
 ```{r}
 maize.mds <- sim.geno(cross = maize.mds, step = 1)
 maize.im.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
 maize.im.qtl
 ```
 
+If we want to know the effect of QTL Q1 we use the function `fitqtl()` with the argument formula = y \~ Q1 :
+
 ```{r}
 maize.im.fit.Q1 <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl, ormula = y ~ Q1, get.ests = TRUE)
 summary(maize.im.fit.Q1)
 ```
+
+We can also build a multiple QTL model, including all three QTL:
 
 ```{r}
 maize.im.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl,formula = y ~ Q1 + Q2 + Q3, get.ests = TRUE)
@@ -118,6 +161,14 @@ save.image("maize_im.RData")
 ```
 
 CIM
+
+For running CIM, there is an function called `cim()` . In this function, we need to specify two main arguments:
+
+-   The number of cofactors or covariate markers: `n.marcovar` , which can be given as .
+
+-   The window size: window , which can be different values depending on population size and map\
+    saturation. It generally goes from 5 to 15 cM, but it can go as high as 20 or 30 cM, or take the whole\
+    chromosome (i.e. leave one chromosome out - LOCO)
 
 ```{r}
 maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
@@ -146,6 +197,8 @@ summary(maize.cim20)
 summary(maize.cimInf)
 ```
 
+In order to make permutation tests to be less conservative and make them work for any window size, we can choose window `= Inf` . That means that no cofactors will be allowed withing the linkage group where the tests are being performed:
+
 ```{r}
 maize.perm.cim <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
     n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf, n.perm = 1000)
@@ -154,6 +207,8 @@ maize.perm.cim <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk
 ```{r}
 summary(maize.perm.cim, alpha = 0.05)
 ```
+
+Now, if we use that permutation results to identify the most significant QTL, we have:
 
 ```{r}
 summary(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
@@ -174,9 +229,10 @@ summary(maize.cimInf, perms = maize.perm.cim, alpha = 0.05)
 ```{r}
 plot(maize.cim10, maize.cim15, maize.cimInf, col = c("blue", "orange", "cyan"), main = "Composite interval mapping (CIM)")
 add.threshold(maize.cim, perms = maize.perm.cim, alpha = 0.05)
-legend("topright", legend = c("ws = 10", "ws = 15", "ws = Inf"), lty = 1, col = c("blue",
-    "orange", "cyan"))
+legend("topright", legend = c("ws = 10", "ws = 15", "ws = Inf"), lty = 1, col = c("blue", "orange", "cyan"))
 ```
+
+Because `maize.cim20` failed to declare most of QTL we think are true, and `maize.cim15` has the same results as `maize.cimInf` , we dropped them from the plot. We can compare our CIM results when window = 10 and window = Inf with our IM results:
 
 ```{r}
 plot(maize.im, maize.cim10, maize.cimInf, col = c("red", "blue", "cyan"), main = "IM versus CIM")
@@ -185,6 +241,8 @@ add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
 legend("topright", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1,
     col = c("red", "blue", "cyan"))
 ```
+
+We can also maybe limit the visualization to chromosomes where QTL appeared in the IM and CIM analyses:
 
 ```{r}
 plot(maize.im, maize.cim10, maize.cimInf, col = c("red", "blue", "cyan"), chr = c(1,
@@ -196,10 +254,17 @@ legend("topleft", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1, 
     "blue", "cyan"))
 ```
 
+The green dots represent the location of markers selected as covariates (cofactors) for the CIM search with window = Inf .\
+Noticed that the QTL on chromosome 1 and 3 that we had identified using IM is right below the threshold for the CIM analysis - so we called them suggetive QTL here. Depending on the researcher's decision, we could low the threshold a bit to include it as a QTL using CIM, which is probably okay. We'll see, however, a better way to deal with it when running a multiple-QTL model, which is our next topic.
+
+Right now, suppose we want to investigate the QTL estimates under CIM with window = 10 . We just need to store the QTL chromosomes and positions from our selected model (CIM with )
+
 ```{r}
 maize.cim.sig <- summary(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
 maize.cim.sig
 ```
+
+However, we noticed that only one QTL on chromosome 1 is listed (the one with the highest LOD score). We need to find the other one by looking at the positions in that chromosome that have a LOD score greater than our threshold of 7.39:
 
 ```{r}
 which(maize.cim10$lod[maize.cim10$chr == 1] > 7.39)
@@ -218,6 +283,8 @@ chr <- c(1, maize.cim.sig$chr)
 pos <- c(198, maize.cim.sig$pos)
 ```
 
+In order to show the QTL effect estimates for an RIL population, we need to use the function `sim.geno()`, then `makeqtl()` and `fitqtl()` :
+
 ```{r}
 maize.mds <- sim.geno(maize.mds, step = 1)
 maize.cim.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
@@ -233,3 +300,7 @@ summary(maize.cim.fit)
 ```{r}
 save.image("maize_mds.RData")
 ```
+
+Note that due to the more or less random pick of marker covariates (cofactors), you might end up with different results from the function `cim()` . Therefore, it is important to save your R environment to use it in you final report. You can do so by using the function `save.image()`.
+
+We will have better ways to verify whether there are other QTL on chromosomes 1 and 3 under the Multiple Interval Mapping (MIM) model approach\
