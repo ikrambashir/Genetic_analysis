@@ -1,0 +1,10 @@
+---
+title: "week_10_assignment"
+author: "Bashir,I. (2022)"
+date: "17/05/2022"
+output: html_document
+---
+
+**Project VI - QTL mapping IV: multiple interval mapping (MIM)**
+
+Use the linkage map to perform multiple interval mapping (MIM) for the trait "PlantHeight". Look at our last class Tutorial to see how to use R/qtl functions for MIM. Make sure to describe the steps you took that led you to the final multiple-QTL model. Also, do not forget to compare the results with those from CIM and IM, pointing out any advantages. Results for the QTL peak within each QTL region should be presented as a table showing QTL chromosome and location of its peak, their effects, associated LOD scores, and R-squared.

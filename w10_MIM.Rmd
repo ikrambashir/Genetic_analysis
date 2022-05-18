@@ -32,7 +32,7 @@ Here, we are using the recombinant inbred line (RIL) population Z025, so these m
 
 Add main effects manually
 
-R/qtl has several functions to deal with multiple-QTL models. We will focus on some of them that are more interesting for this specific dataset, but you might want to take a look on other functions from R/qtl tutorials available here ([https://rqtl.org/tutorials/),](https://rqtl.org/tutorials/),) especially this one ([<https://rqtl.org/tutorials/new_multiqtl.pdf>).](https://rqtl.org/tutorials/new_multiqtl.pdf).)
+R/qtl has several functions to deal with multiple-QTL models. We will focus on some of them that are more interesting for this specific dataset, but you might want to take a look on other functions from R/qtl tutorials available here ([https://rqtl.org/tutorials/),](https://rqtl.org/tutorials/),) especially this one ([\<https://rqtl.org/tutorials/new_multiqtl.pdf>).](https://rqtl.org/tutorials/new_multiqtl.pdf).)
 
 makeqtl and fitqtl
 
@@ -185,10 +185,8 @@ maize.step
 
 Therefore, the same results were obtained as previously performed manually. A scheme with the steps to find the best model can be found below:
 
-![](images/1.png)
-Adding epistasis\
-In the `stepwiseqtl` run above, we have already tested for interactions between QTL in the model (and no interactions were found)
-addint\
+![](images/1.png) Adding epistasis\
+In the `stepwiseqtl` run above, we have already tested for interactions between QTL in the model (and no interactions were found) addint\
 In the case of our manual search, interacting QTL have not been tested yet. One way of explicitly look for epistasis is by using the function `addint()` , so we use our maize.ref object:
 
 ```{r}
@@ -222,69 +220,42 @@ plot(maize.two, col.scheme = "redblue")
 
 \
 
+\
 
 \
 
+\
 
 \
 
+\
 
 \
 
-
+\
 
 \
 
+\
 
 \
 
+\
 
 \
 
-
+\
 
 \
 
+\
 
 \
 
-
+\
 
 \
 
-
-
 \
 
-
 \
-
-
-\
-
-
-\
-
-
-\
-
-
-\
-
-
-\
-
-
-\
-
-
-
-\
-
-
-\
-
-
-
-\
-
