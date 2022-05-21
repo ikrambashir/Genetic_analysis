@@ -6,3 +6,450 @@ output: html_document
 ---
 
 ### Multiple trait multiple QTL mapping in a maize RIL population using R and R/qtl.
+
+```{r}
+library(qtl)
+load("maize_cim.RData")
+```
+
+The functions `summaryMap()` , `plotMap()` and `plotRF()` are used here just to double check if we are using the right genetic map:
+
+```{r}
+summaryMap(maize.mds)
+```
+
+```{r}
+plotMap(maize.mds)
+```
+
+```{r}
+plotRF(maize.mds, col.scheme = "redblue")
+```
+
+### Multiple QTL mapping 
+
+Here, we are using the recombinant inbred line (RIL) population Z025, so these methods might not lead to the same results in your population. As generally observed in most experimental data, this population also has recorded observations on multiple traits:
+
+```{r}
+names(maize.mds$pheno)
+```
+
+So, let's take a look on some of these traits. The function plot() shows the distribution of phenotypic values of the same individuals for each trait pair. The function `cor()` computes the pairwise correlation (Pearson, in this case):
+
+```{r}
+plot(maize.mds$pheno[, c("PlantHeight", "EarHeight", "NIRProtein", "NIRStarch")])
+```
+
+```{r}
+cor(maize.mds$pheno[, c("PlantHeight", "EarHeight", "NIRProtein", "NIRStarch")])
+```
+
+Notice how "PlantHeight" and "EarHeight" are positively correlated, whereas "NIRProtein" and "NIRStarch" are negatively correlated. We wonder that each one of these trait pairs might have some shared QTL (either pleiotropic or closely linked QTL) that make them co-vary. On the other hand "PlantHeight" and "NIRStarch" do not seem to be correlated, meaning that is very unlikely that they share many major QTL.
+
+## Single-trait analysis 
+
+It is interesting to run single-trait analysis just to have a first view of the QTL profile for each trait. As an example, we will run interval mapping (IM) first, then multiple QTL mapping.
+
+### Interval mapping 
+
+For interval mapping, we will run the function scanone() for each trait separately, and plot them superimposed in a single graphic representation to get a sense on which QTL might be shared:
+
+```{r}
+maize.im.PH <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
+maize.im.EH <- scanone(cross = maize.mds, pheno.col = "EarHeight", method = "hk")
+maize.im.NP <- scanone(cross = maize.mds, pheno.col = "NIRProtein", method = "hk")
+maize.im.NS <- scanone(cross = maize.mds, pheno.col = "NIRStarch", method = "hk")
+plot(maize.im.PH, maize.im.EH, col = c("red", "blue"), main = "Interval mapping (IM)")
+legend("topleft", legend = c("PlantHeight", "EarHeight"), lty = 1, col = c("red", "blue"))
+```
+
+```{r}
+plot(maize.im.NP, maize.im.NS, col = c("red", "blue"), main = "Interval mapping (IM)")
+legend("topleft", legend = c("NIRProtein", "NIRStarch"), lty = 1, col = c("red", "blue"))
+```
+
+From the plots, we notice that most of peaks for "PlantHeight" and "EarHeight" are in agreement regarding their genomic positions.
+
+### Multiple QTL mapping 
+
+Now, we will build a multiple QTL model. From our Week 10 tutorial class, we noticed that an\
+automatic function called stepwiseqtl() works relatively well. However, we need to provide penalties for such a function, which depends on permutations runs ( n.perm = 1000 ) using the function `scantwo()` :
+
+```{r}
+permo.2dim.PH <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000)
+permo.2dim.EH <- scantwo(maize.mds, pheno.col = "EarHeight", method = "hk", n.perm = 1000)
+permo.2dim.NP <- scantwo(maize.mds, pheno.col = "NIRProtein", method = "hk", n.perm = 1000)
+permo.2dim.NS <- scantwo(maize.mds, pheno.col = "NIRStarch", method = "hk", n.perm = 1000)
+save(permo.2dim.PH, permo.2dim.EH, permo.2dim.NP, permo.2dim.NS, file = "permo_2dim.RData")
+```
+
+We ran the permutations and save them to avoid running them all over again every time we need to define penalties for these traits. We can see a summary of each object `permo.2dim` and compute the penalties that will be used for automatic multiple-QTL model search:
+
+```{r}
+load("permo_2dim.RData")
+summary(permo.2dim.PH, alpha = 0.05)
+```
+
+```{r}
+penalties.PH <- calc.penalties(permo.2dim.PH)
+penalties.PH
+```
+
+```{r}
+summary(permo.2dim.EH, alpha = 0.05)
+```
+
+```{r}
+penalties.EH <- calc.penalties(permo.2dim.EH)
+penalties.EH
+```
+
+```{r}
+summary(permo.2dim.NP, alpha = 0.05)
+```
+
+```{r}
+penalties.NP <- calc.penalties(permo.2dim.NP)
+penalties.NP
+```
+
+```{r}
+summary(permo.2dim.NS, alpha = 0.05)
+```
+
+```{r}
+penalties.NS <- calc.penalties(permo.2dim.NS)
+penalties.NS
+```
+
+Finally, the penalties for the penalized LOD scores can now be used by `stepwiseqtl()` . First, for "PlantHeight" and "EarHeight" where some QTL are detected in the same regions:
+
+```{r}
+maize.step.PH <- stepwiseqtl(maize.mds, pheno.col = "PlantHeight", max.qtl = 6, method = "hk", penalties = penalties.PH)
+```
+
+```{r}
+maize.step.PH
+```
+
+```{r}
+plotLodProfile(maize.step.PH, main = "PlantHeight")
+```
+
+```{r}
+maize.step.EH <- stepwiseqtl(maize.mds, pheno.col = "EarHeight", max.qtl = 6, method = "hk", penalties = penalties.EH)
+```
+
+```{r}
+maize.step.EH
+```
+
+```{r}
+plotLodProfile(maize.step.EH, main = "EarHeight")
+```
+
+Now, for "NIRProtein" and "NIRStarch" where QTL are detected in separate regions:
+
+```{r}
+maize.step.NP <- stepwiseqtl(maize.mds, pheno.col = "NIRProtein", max.qtl = 6, method = "hk", penalties = penalties.NP)
+```
+
+```{r}
+maize.step.NP
+```
+
+```{r}
+plotLodProfile(maize.step.NP, main = "NIRProtein")
+```
+
+```{r}
+maize.step.NS <- stepwiseqtl(maize.mds, pheno.col = "NIRStarch", max.qtl = 6, method = "hk", penalties = penalties.NS)
+```
+
+```{r}
+maize.step.NS
+```
+
+```{r}
+plotLodProfile(maize.step.NS, main = "NIRStarch")
+```
+
+In this case, a joint QTL run would be able to define whether QTL regions are indeed shared between the two traits.\
+**"PlantHeight" and "EarHeight"\
+**Unfortunately, R/qtl does not have proper functions to deal with multiple traits, so we will improvise a bit. We will proceed with "PlantHeight" and "EarHeight" as they seemed to have more agreement regarding the IM and MIM searches
+
+```{r}
+chr <- as.integer(maize.step.PH$chr)
+pos <- maize.step.PH$pos
+maize.qtl.PH <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl.PH
+```
+
+```{r}
+chr <- as.integer(maize.step.EH$chr)
+pos <- maize.step.EH$pos
+maize.qtl.EH <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl.EH
+```
+
+```{r}
+maize.fit.PH <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.qtl.PH, formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5, get.ests = TRUE)
+summary(maize.fit.PH)
+```
+
+```{r}
+maize.fit.EH <- fitqtl(cross = maize.mds, pheno.col = "EarHeight", qtl = maize.qtl.EH,
+formula = y ~ Q1 + Q2, get.ests = TRUE)
+summary(maize.fit.EH)
+```
+
+The agreement regarding the signs of each QTL help to explain the positive correlation. For the major QTL on chromosome 7, find below the comparison between genotypic classes for each closest marker to the QTL peak:
+
+```{r}
+par(mfrow = c(1, 2))
+plotPXG(maize.mds, pheno.col = "PlantHeight", marker = find.marker(maize.mds, chr = 7,
+pos = 52.26))
+plotPXG(maize.mds, pheno.col = "EarHeight", marker = find.marker(maize.mds, chr = 7,
+pos = 52.56))
+```
+
+Ideally, we should be using both traits -- simultaneously -- to perform multiple QTL search. Though the LOD for interactions do not reach our permutation level for all five QTL found for "PlantHeight" in "EarHeight", we still decide to include them in the "EarHeight" model for further investigation:
+
+```{r}
+maize.fit.EH <- fitqtl(cross = maize.mds, pheno.col = "EarHeight", qtl = maize.qtl.PH,
+formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5, get.ests = TRUE)
+summary(maize.fit.EH)
+```
+
+**"NIRProtein" and "NIRStarch"**\
+Just to make sure we have "NIRProtein" and "NIRStarch" also covered:
+
+```{r}
+chr <- as.integer(maize.step.NP$chr)
+pos <- maize.step.NP$pos
+maize.qtl.NP <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl.NP
+```
+
+```{r}
+chr <- as.integer(maize.step.NS$chr)
+pos <- maize.step.NS$pos
+maize.qtl.NS <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl.NS
+```
+
+Now, we can fit our model, and compute the QTL effects (using `get.ests = TRUE` ):
+
+```{r}
+maize.fit.NP <- fitqtl(cross = maize.mds, pheno.col = "NIRProtein", qtl = maize.qtl.NP,formula = y ~ Q1 + Q2, get.ests = TRUE)
+summary(maize.fit.NP)
+```
+
+```{r}
+maize.fit.NS <- fitqtl(cross = maize.mds, pheno.col = "NIRStarch", qtl = maize.qtl.NS,
+formula = y ~ Q1 + Q2, get.ests = TRUE)
+summary(maize.fit.NS)
+```
+
+Note how the effects of QTL on chromosome 10 have opposite signs, which can be used to partially explain the negative correlation between "NIRProtein" and "NIRStarch". The signs just show which parental genotype contributes to moving the phenotype away from the mean:
+
+```{r}
+par(mfrow = c(1, 2))
+plotPXG(maize.mds, pheno.col = "NIRProtein", marker = find.marker(maize.mds, chr = 10,
+pos = 45.3))
+plotPXG(maize.mds, pheno.col = "NIRStarch", marker = find.marker(maize.mds, chr = 10,
+pos = 36))
+```
+
+### Simple vs. multiple linear regression 
+
+In order to simplify the discussion that follows, we built a new dataset that contains only the variables that we are going to use for "PlantHeight" and "EarHeight" (i.e. the two traits and the respective genotypes for each QTL position):
+
+```{r}
+head(data)
+```
+
+Simple linear regression has a single explanatory variable (\\(x\\), the independent variable), which we use to try to explain some variation in the response variable (\\(y\\), the dependent variable).
+
+In QTL mapping, interval mapping (IM) model for RIL populations (two genotypic classes, \\(AA\\) and \\(BB\\)) is an example of simple linear regression: \\[y_i = \\mu + \\beta\^\* x\^\*\_i + e\\] where \\(i\\) indexes the individuals (\\(i=1,2,\\dots,n\\)), \\(y_i\\) is the phenotypic value of individual \\(i\\), \\(\\mu\\) is the intercept, \\(\\beta\^\*\\) is the QTL effect, \\(x\^\*\_i\\) is the indicator variable of the QTL genotype (conditional probabilities) of individual \\(i\\), and \\(e_i\\) is the error assumed to be normally distributed with mean zero and variance \\(\\sigma\^2\\). Let's see an example of simple linear regressions of the response variable "PlantHeight", whose variation we try to explain out of one single QTL:
+
+```{r}
+summary(lm(PlantHeight ~ Q1, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q2, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q3, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q4, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q5, data = data))
+```
+
+Note that such a model is somewhat limited because we know that variation in quantitative traits should be explained by the contribution of more than one QTL. That is, we are not comprehensively describing the genetic architecture of a trait. See below that residuals and \\(R\^2\\) do not change much over QTL:
+
+In addition, we cannot simply sum the \\(R\^2\\) because there are covariance between QTL effects that we do not take into account when fitting each QTL in a separate model. So, how to fix that? Fit all QTL together!\
+Multiple linear regression has two or more explanatory variables \\(x\\), which we use to explain more of the variation observed in the response variable \\(y\\). Depending on the context, an explanatory variable is\
+sometimes called a "predictor variable", "regressor", "covariate", "explanatory variable", etc.
+
+In QTL mapping, both composite (CIM) and multiple interval mapping (MIM) models for RIL populations are examples of multiple linear regression. That is, rather than having only one explanatory variable (one QTL effect), we fit a model with additional explanatory variable, which we refer to as cofactors (marker covariates) in CIM, or other QTL in MIM.\
+See below how we would write a multiple linear regression representing the CIM model for RIL populations: \\[y_i = \\mu + \\beta\^\* x\^\*\_i + \\sum_k \\beta_k x\_{ki}+ e\\] where \\(\\beta\*\\) and \\(x\^\*\_i\\) represent the effect and indicator variable for QTL whereas \\(\\beta_k\\) and \\(x\_{ki}\\) represent the effect and indicator variable for cofactor \\(k\\).
+
+Now, see below a multiple linear regression representing a MIM model (no epistasis) for RIL populations: \\[y_i = \\mu + \\sum_k \\beta\^\*\_k x\^\*\_{ki}+ e\\]
+
+Notice how CIM and MIM models are similar in goal (explain more of the response variable by using more the one explanatory variable), but different in implementation. CIM models one QTL effect plus multiple cofactors (not QTL per se), whereas MIM models multiple QTL. That also implies that while interacting QTL are not part of the CIM model, epistasis can be included in MIM models and increase the number of explanatory variables for the phenotypic trait variation.
+
+```{r}
+summary(lm(PlantHeight ~ Q1, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q1 + Q2, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q1 + Q2, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q1 + Q2 + Q3 + Q4, data = data))
+```
+
+```{r}
+summary(lm(PlantHeight ~ Q1 + Q2 + Q3 + Q4 + Q5, data = data))
+```
+
+In this case, \\(R\^2\\) reflects the amount of variation in the response variable that can be explained by the all explanatory variables fitted in the model, and \\(\\sigma\\) decreases every time an explanatory variable is added (which impacts on statistical power increase). See a graphic representation below:
+
+### Multiple-trait analysis 
+
+We can use the function `lm()` to build multivariate models
+
+```{r}
+mtmim <- lm(cbind(PlantHeight, EarHeight) ~ Q1 + Q2 + Q3 + Q4 + Q5, data = data)
+summary(mtmim)
+```
+
+```{r}
+sigma(mtmim)^2
+```
+
+```{r}
+estVar(mtmim)
+```
+
+Using the function `Anova()` from the R package car , we can see that all QTL (explanatory variables) are\
+significant for both traits.
+
+```{r}
+car::Anova(mtmim)
+```
+
+If we run the function predict() with the newly fitted model mtmim and the five QTL genotype probabilities information from data , we will have the predictions of the QTL-based genotypic values for each individual, which are highly correlated (\\(r = 0.98\\)):
+
+```{r}
+mtmim.pred <- predict(mtmim, data)
+head(mtmim.pred)
+```
+
+```{r}
+plot(mtmim.pred, main = paste("r =", round(cor(mtmim.pred)[2], 2)))
+```
+
+Note that the predictions are derived from the same data that originated the parameter estimates, so we do expect the correlation to be inflated. A cross-validation or a true validation would be more recommended in this case.
+
+Also, we we were not able to run the proper alternative hypothesis testing for pleiotropy vs. linked QTL due to software limitations. In Windows QTLCartographer, one should be able to run specific tests for testing alternative hypothesis regarding pleiotropy and closely linked QTL
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+\
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+
+
+\
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+
+\
+
+
+\
+
+
+\
+
+
+
+\
+
