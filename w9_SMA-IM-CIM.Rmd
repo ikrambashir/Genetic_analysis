@@ -5,17 +5,17 @@ date: '2022-05-05'
 output: html_document
 ---
 
-### QTL mapping
+### Single marker analysis (SMA), interval mapping (IM) and composite interval mapping (CIM) in a maize RIL population
 
-Here, we are using the recombinant inbred line (RIL) population Z025, so these methods might not lead to the same results in your population
+Here, we are using the recombinant inbred line (RIL) population Z015, so these methods might not lead to the same results in your population
 
 **Load map previously estimated**
 
-As we have previously constructed our map (see Week 8 tutorial class), we just need to load the RData using the function `load()` :
+As we have previously constructed our map (see Week 8 tutorial class), we just need to load the `.RData` using the function `load()` :
 
 ```{r}
 library(qtl)
-load("maize_mds.RData")
+load("maize15_mds.RData")
 ```
 
 The functions `summaryMap()` , `plotMap()` and `plotRF()` are used here just to double check if we are using the right genetic map:
@@ -32,7 +32,7 @@ plotMap(maize.mds)
 plotRF(maize.mds, col.scheme = "redblue")
 ```
 
-SMA
+### Single Marker Analysis
 
 Our first analysis involves testing for associations between each marker and the trait "PlantHeight". We do so by running the function `scanone()` with method = "mr" , which stands for "marker regression":
 
@@ -57,8 +57,7 @@ Permutation tests can provide a critical value which can be used to declare QTL.
 n.perm = 1000 , meaning that we are running 1,000 permutations:
 
 ```{r}
-maize.perm.mr <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "mr",
-    n.perm = 1000, verbose = FALSE)
+maize.perm.mr <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "mr", n.perm = 100, verbose = FALSE)
 ```
 
 The `summary()` function shows the LOD threshold for a given level:
@@ -74,7 +73,7 @@ maize.mr.sig <- summary(maize.mr, perms = maize.perm.mr, alpha = 0.05)
 maize.mr.sig
 ```
 
-IM
+### Interval Mapping
 
 In order to run IM, we need to calculate the QTL genotype probability within marker intervals, conditional on the genetic map. We do so by using the function `calc.genoprob()` . The argument step = 1 defines the step size in which the probability needs to be calculated (in our case, every 1 cM):
 
@@ -92,8 +91,7 @@ summary(maize.im)
 In order to know the critical value to declare QTL using permutations, we first run the `scanone()` function with the arguments method = "hk" and n.perm = 1000 . Them the function `summary()` shows the LOD threshold for a given $a$ level (in our case, alpha = 0.05 ):
 
 ```{r}
-maize.perm.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
-    n.perm = 1000)
+maize.perm.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000)
 ```
 
 ```{r}
@@ -145,7 +143,7 @@ maize.im.qtl
 If we want to know the effect of QTL Q1 we use the function `fitqtl()` with the argument formula = y \~ Q1 :
 
 ```{r}
-maize.im.fit.Q1 <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl, ormula = y ~ Q1, get.ests = TRUE)
+maize.im.fit.Q1 <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl, formula = y ~ Q1, get.ests = TRUE)
 summary(maize.im.fit.Q1)
 ```
 
@@ -157,10 +155,10 @@ summary(maize.im.fit)
 ```
 
 ```{r}
-save.image("maize_im.RData")
+save.image("maize15_im.RData")
 ```
 
-CIM
+### Composite Interval Mapping (CIM)
 
 For running CIM, there is an function called `cim()` . In this function, we need to specify two main arguments:
 
@@ -171,14 +169,10 @@ For running CIM, there is an function called `cim()` . In this function, we need
     chromosome (i.e. leave one chromosome out - LOCO)
 
 ```{r}
-maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
-    sqrt(nind(maize.mds)), window = 10)
-maize.cim15 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
-    sqrt(nind(maize.mds)), window = 15)
-maize.cim20 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 *
-    sqrt(nind(maize.mds)), window = 20)
-maize.cimInf <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
-    n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf)
+maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = 10)
+maize.cim15 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = 15)
+maize.cim20 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = 20)
+maize.cimInf <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf)
 ```
 
 ```{r}
@@ -200,8 +194,7 @@ summary(maize.cimInf)
 In order to make permutation tests to be less conservative and make them work for any window size, we can choose window `= Inf` . That means that no cofactors will be allowed withing the linkage group where the tests are being performed:
 
 ```{r}
-maize.perm.cim <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
-    n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf, n.perm = 1000)
+maize.perm.cim <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf, n.perm = 100)
 ```
 
 ```{r}
@@ -228,7 +221,7 @@ summary(maize.cimInf, perms = maize.perm.cim, alpha = 0.05)
 
 ```{r}
 plot(maize.cim10, maize.cim15, maize.cimInf, col = c("blue", "orange", "cyan"), main = "Composite interval mapping (CIM)")
-add.threshold(maize.cim, perms = maize.perm.cim, alpha = 0.05)
+add.threshold(maize.cim15, perms = maize.perm.cim, alpha = 0.05)
 legend("topright", legend = c("ws = 10", "ws = 15", "ws = Inf"), lty = 1, col = c("blue", "orange", "cyan"))
 ```
 
@@ -236,7 +229,7 @@ Because `maize.cim20` failed to declare most of QTL we think are true, and `maiz
 
 ```{r}
 plot(maize.im, maize.cim10, maize.cimInf, col = c("red", "blue", "cyan"), main = "IM versus CIM")
-add.threshold(maize.cim, perms = maize.perm.cim, alpha = 0.05)
+add.threshold(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
 add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
 legend("topright", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1,
     col = c("red", "blue", "cyan"))
@@ -250,8 +243,7 @@ plot(maize.im, maize.cim10, maize.cimInf, col = c("red", "blue", "cyan"), chr = 
 add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
 add.threshold(maize.cim10, perms = maize.perm.cim, alpha = 0.05, col = "black")
 add.cim.covar(maize.cimInf, chr = c(1, 2, 3, 7), col = "green")
-legend("topleft", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1, col = c("red",
-    "blue", "cyan"))
+legend("topleft", legend = c("IM", "CIM (ws = 10)", "CIM (ws = Inf)"), lty = 1, col = c("red", "blue", "cyan"))
 ```
 
 The green dots represent the location of markers selected as covariates (cofactors) for the CIM search with window = Inf .\
@@ -292,13 +284,12 @@ maize.cim.qtl
 ```
 
 ```{r}
-maize.cim.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.cim.qtl,
-    formula = y ~ Q1 + Q2 + Q3 + Q4, get.ests = TRUE)
+maize.cim.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.cim.qtl,formula = y ~ Q1 + Q2 + Q3 + Q4, get.ests = TRUE)
 summary(maize.cim.fit)
 ```
 
 ```{r}
-save.image("maize_mds.RData")
+save.image("maize15_cim.RData")
 ```
 
 Note that due to the more or less random pick of marker covariates (cofactors), you might end up with different results from the function `cim()` . Therefore, it is important to save your R environment to use it in you final report. You can do so by using the function `save.image()`.

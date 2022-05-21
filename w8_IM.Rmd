@@ -350,25 +350,3 @@ add.threshold(mouse.em, perms = mouse.perm.em, col = "red")
 add.threshold(mouse.hk, perms = mouse.perm.hk, col = "blue")
 legend("topright", legend = c("EM", "HK"), lty = 1, lwd = 3, col = c("red", "blue"))
 ```
-
-#### **Assignment:** 
-
-Used the linkage map to perform interval mapping (IM) for the trait
-"PlantHeight". Do not forget to run permutation tests to identify the
-LOD threshold to declare QTL at an alpha level of 0.05. Results for the
-QTL peak within each QTL region should be presented as a table showing
-QTL chromosome and location of its peak, their effects, associated LOD
-scores, and R-squared.
-
-```{r}
-load("maize003_mds.Rdata")
-```
-
-```{r}
-maize <- calc.genoprob(maize, step = 1)
-```
-
-```{r}
-maize.perm.em <- scanone(maize, pheno.col = "PlantHeight", method = "em", n.perm = 1000, verbose = FALSE)
-maize.perm.hk <- scanone(maize, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, verbose = FALSE)
-```

@@ -1,0 +1,8 @@
+---
+title: "w11_mtmQTL"
+author: "Bashir,I. (2022)"
+date: "19/05/2022"
+output: html_document
+---
+
+### Multiple trait multiple QTL mapping in a maize RIL population using R and R/qtl.
