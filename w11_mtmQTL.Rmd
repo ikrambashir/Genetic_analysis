@@ -9,7 +9,7 @@ output: html_document
 
 ```{r}
 library(qtl)
-load("maize_cim.RData")
+load("maize15_cim.RData")
 ```
 
 The functions `summaryMap()` , `plotMap()` and `plotRF()` are used here just to double check if we are using the right genetic map:
@@ -26,7 +26,7 @@ plotMap(maize.mds)
 plotRF(maize.mds, col.scheme = "redblue")
 ```
 
-### Multiple QTL mapping 
+### Multiple QTL mapping
 
 Here, we are using the recombinant inbred line (RIL) population Z025, so these methods might not lead to the same results in your population. As generally observed in most experimental data, this population also has recorded observations on multiple traits:
 
@@ -46,11 +46,11 @@ cor(maize.mds$pheno[, c("PlantHeight", "EarHeight", "NIRProtein", "NIRStarch")])
 
 Notice how "PlantHeight" and "EarHeight" are positively correlated, whereas "NIRProtein" and "NIRStarch" are negatively correlated. We wonder that each one of these trait pairs might have some shared QTL (either pleiotropic or closely linked QTL) that make them co-vary. On the other hand "PlantHeight" and "NIRStarch" do not seem to be correlated, meaning that is very unlikely that they share many major QTL.
 
-## Single-trait analysis 
+## Single-trait analysis
 
 It is interesting to run single-trait analysis just to have a first view of the QTL profile for each trait. As an example, we will run interval mapping (IM) first, then multiple QTL mapping.
 
-### Interval mapping 
+### Interval mapping
 
 For interval mapping, we will run the function scanone() for each trait separately, and plot them superimposed in a single graphic representation to get a sense on which QTL might be shared:
 
@@ -70,7 +70,7 @@ legend("topleft", legend = c("NIRProtein", "NIRStarch"), lty = 1, col = c("red",
 
 From the plots, we notice that most of peaks for "PlantHeight" and "EarHeight" are in agreement regarding their genomic positions.
 
-### Multiple QTL mapping 
+### Multiple QTL mapping
 
 Now, we will build a multiple QTL model. From our Week 10 tutorial class, we noticed that an\
 automatic function called stepwiseqtl() works relatively well. However, we need to provide penalties for such a function, which depends on permutations runs ( n.perm = 1000 ) using the function `scantwo()` :
@@ -261,7 +261,7 @@ plotPXG(maize.mds, pheno.col = "NIRStarch", marker = find.marker(maize.mds, chr 
 pos = 36))
 ```
 
-### Simple vs. multiple linear regression 
+### Simple vs. multiple linear regression
 
 In order to simplify the discussion that follows, we built a new dataset that contains only the variables that we are going to use for "PlantHeight" and "EarHeight" (i.e. the two traits and the respective genotypes for each QTL position):
 
@@ -328,7 +328,7 @@ summary(lm(PlantHeight ~ Q1 + Q2 + Q3 + Q4 + Q5, data = data))
 
 In this case, \\(R\^2\\) reflects the amount of variation in the response variable that can be explained by the all explanatory variables fitted in the model, and \\(\\sigma\\) decreases every time an explanatory variable is added (which impacts on statistical power increase). See a graphic representation below:
 
-### Multiple-trait analysis 
+### Multiple-trait analysis
 
 We can use the function `lm()` to build multivariate models
 
@@ -365,91 +365,48 @@ plot(mtmim.pred, main = paste("r =", round(cor(mtmim.pred)[2], 2)))
 
 Note that the predictions are derived from the same data that originated the parameter estimates, so we do expect the correlation to be inflated. A cross-validation or a true validation would be more recommended in this case.
 
-Also, we we were not able to run the proper alternative hypothesis testing for pleiotropy vs. linked QTL due to software limitations. In Windows QTLCartographer, one should be able to run specific tests for testing alternative hypothesis regarding pleiotropy and closely linked QTL
-\
-
-
+Also, we we were not able to run the proper alternative hypothesis testing for pleiotropy vs. linked QTL due to software limitations. In Windows QTLCartographer, one should be able to run specific tests for testing alternative hypothesis regarding pleiotropy and closely linked QTL\
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
+\
 
 \
 
+\
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
-
+\
 
 \
 
-
-
 \
-
-
-
-\
-
-
-
-\
-
-
-
-
-
-\
-
-
-\
-
-
-
-\
-
-
-
-\
-
-
-
-\
-
-
-\
-
-
-\
-
-
-
-\
-

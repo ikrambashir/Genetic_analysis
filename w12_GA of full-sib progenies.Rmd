@@ -1,0 +1,336 @@
+---
+title: "w12_OneMap"
+author: "Bashir,I. (2022)"
+date: "26/05/2022"
+output: html_document
+editor_options: 
+  chunk_output_type: inline
+---
+
+## Genetic analyses of full-sib progenies using OneMap and fullsibQTL
+
+### Linkage map construction
+
+To build the linkage map, we are going to use the `OneMap` package, but we data that exists within the `fullsibQTL` package, so we need to install and load both of them.
+
+```{r}
+library(onemap)
+```
+
+```{r}
+library(devtools)
+devtools::install_github("guilherme-pereira/fullsibQTL")
+```
+
+```{r}
+#install_github("augusto-garcia/fullsibQTL")
+detach("package:fullsibQTL", unload=TRUE)
+library(fullsibQTL)
+```
+
+```{r}
+inputfile <- system.file("extdata", "example_QTLfullsib.raw", package = "fullsibQTL")
+fs_data <- read_onemap(inputfile = inputfile)
+```
+
+There are some functions associated with such data that help us to visualize and understand it better:
+
+```{r}
+print(fs_data)
+```
+
+```{r}
+plot(fs_data)
+plot(fs_data, all = FALSE)
+plot_by_segreg_type(fs_data)
+```
+
+Our fist step of the linkage analysis starts with segregation tests. We use the function `test_segregation()` to compute the chi-square as its associated value for each marker, depending on their expected segregation:
+
+```{r}
+segreg_test <- test_segregation(fs_data)
+head(print(segreg_test))
+```
+
+```{r}
+plot(segreg_test)
+```
+
+```{r}
+no_dist <- select_segreg(segreg_test, distorted = FALSE, numbers = TRUE)
+```
+
+Most markers do follow the expected segregation, but 18% of the markers is distorted. We decide to proceed with the analyses without them.\
+Next, we estimate the pairwise recombination fraction (two-point estimation):
+
+```{r}
+twopts <- rf_2pts(fs_data)
+twopts
+```
+
+```{r}
+print(twopts, c("M1", "M2"))
+```
+
+```{r}
+mark_no_dist <- make_seq(twopts, c(no_dist))
+```
+
+And use the sequence of markers created by the function `make_seq()` to group them into linkage groups by using the function `group()`
+
+```{r}
+LOD_sug <- suggest_lod(fs_data)
+LOD_sug
+```
+
+```{r}
+LGs <- group(mark_no_dist, LOD = LOD_sug, max.rf = 0.37)
+```
+
+```{r}
+print(LGs, detailed = FALSE)
+```
+
+We define the Kosambi map function using the `set_map_fun()` , and estimate the final multipoint genetic map (recombination fractions computed via hidden Markov models):
+
+```{r}
+set_map_fun(type = "kosambi")
+LG1 <- make_seq(LGs, 1)
+LG2 <- make_seq(LGs, 2)
+LG3 <- make_seq(LGs, 3)
+LG4 <- make_seq(LGs, 4)
+LG1 <- map(LG1)
+LG2 <- map(LG2)
+LG3 <- map(LG3)
+LG4 <- map(LG4)
+```
+
+Typically, we would need to go through a set of functions to order the markers within each linkage group. However, for the sake of time, we use the given order, which seems to be the correct one:
+
+```{r}
+rf_graph_table(LG1)
+```
+
+```{r}
+rf_graph_table(LG2)
+```
+
+```{r}
+rf_graph_table(LG3)
+```
+
+```{r}
+rf_graph_table(LG4)
+```
+
+Finally, we can plot the map using the function draw_map() :
+
+### QTL mapping
+
+To perform QTL mapping, we are going to use the `fullsibQTL` package.\
+First, we create an object that combines the raw data fs_data use by `OneMap` and the map information:
+
+```{r}
+fs_map <- create_fullsib(fs_data, map.list = list(LG1, LG2, LG3, LG4), step = 1,map.function = "kosambi")
+fs_map
+```
+
+### Interval mapping
+
+As always, we can initially try to find QTL using the interval mapping model below:\
+This model tests if any of the possible effects of a single QTL is significant:
+
+```{r}
+im <- im_scan(fullsib = fs_map, pheno.col = 1)
+summary(im)
+```
+
+To declare QTL, we perform the 1,000 permutation tests:
+
+```{r}
+set.seed(1234)
+im_perm <- im_scan(fs_map, pheno.col = 1, n.perm = 100)
+save(im_perm, file = "im_perm.Rdata")
+```
+
+Then, use the $a$ = 0.05 to be our threshold:
+
+```{r}
+load("im_perm.Rdata")
+summary(im_perm, alpha = 0.05)
+```
+
+```{r}
+im_thre <- summary(im_perm, alpha = 0.05, verbose = FALSE)[1, 1]
+plot(im)
+abline(h = im_thre, col = "red")
+```
+
+### Composite interval mapping
+
+If we want to increase statistical power, we can use the composite interval mapping model below:\
+The cofactors (marker covariates) - 10 in our case - are selected using the `cof_selection()` function
+
+```{r}
+cofs_fs <- cof_selection(fs_map, pheno.col = 1, k = log(300), n.cofactor = 10)
+```
+
+```{r}
+plot(cofs_fs)
+```
+
+Then, we can proceed with the CIM scan:
+
+```{r}
+cim <- cim_scan(fullsib = cofs_fs, ws = 10, pheno.col = 1)
+```
+
+Again, 1,000 permutation tests is used to define a threshold:\
+
+```{r}
+cim_perm <- cim_scan(fullsib = cofs_fs, pheno.col = 1, n.perm = 1000)
+save(cim_perm, file = "cim_perm.Rdata")
+```
+
+```{r}
+load("cim_perm.Rdata")
+summary(cim_perm, alpha = 0.05) 
+```
+
+```{r}
+cim_thre <- summary(cim_perm, alpha = 0.05, verbose = FALSE)[1, 1]
+plot(cim, lwd=1)
+plot(im, lty=2, lwd=1 add=T)
+abline(h = cim_thre, col = "red")
+abline(h = im_thre, col = "red", lty=2)
+```
+
+Now we can compare the IM and CIM
+
+```{r}
+summary(cim)
+```
+
+The function `summary()` only shows the highest peak per chromosome. The function `plot_fullsibQTL()` can help us to identify the QTL peaks interactively
+
+```{r}
+plot_fullsibQTL(fullsib = fs_map, fullsib.scan = cim, interact = TRUE)
+```
+
+Given the information from the plot above (not shown), we end up with eight QTL:
+
+```{r}
+QTL1 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 1, pos = 15)
+QTL2 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 1, pos = 125)
+QTL3 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 2, pos = 21)
+QTL4 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 2, pos = 61)
+QTL5 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 2, pos = 87)
+QTL6 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 3, pos = 23)
+QTL7 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 3, pos = 71)
+QTL8 <- cim_char(fullsib = cofs_fs, pheno.col = 1, lg = 4, pos = 45)
+```
+
+```{r}
+knitr::kable(cbind(QTL1, QTL2, QTL3, QTL4, QTL5, QTL6, QTL7, QTL8))
+```
+
+Segregation and phase of each QTL can be obtained from the functions get_segr() and draw_phase() , respectively:
+
+```{r}
+get_segr(QTL1)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL1)
+```
+
+```{r}
+get_segr(QTL2)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL2)
+```
+
+```{r}
+get_segr(QTL3)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL3)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL4)
+```
+
+```{r}
+get_segr(QTL5)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL5)
+```
+
+```{r}
+get_segr(QTL6)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL6)
+```
+
+```{r}
+get_segr(QTL7)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL7)
+```
+
+```{r}
+get_segr(QTL8)
+```
+
+```{r}
+draw_phase(fullsib = cofs_fs, fullsib.char = QTL8)
+```
+
+The $R^2$ for each QTL and all of them combined is computed by the function `r2_ls()` below:
+
+```{r}
+qtls.cim <- r2_ls(fs_map, pheno.col = 1, lg = c(1, 1, 2, 2, 2, 3, 3, 4), pos = c("M3",
+"M14", "M21", "M25", "M27", "M33", "M38", "M53"))
+knitr::kable(qtls.cim)
+```
+
+\
+
+\
+
+\
+
+\
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\
+
+\

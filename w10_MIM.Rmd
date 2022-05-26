@@ -64,7 +64,8 @@ pos <- c(122.0, 162, 121.0, 36.8)
 In order to build a multiple-QTL model, we need to use the function `calc.genoprob()` , then `makeqtl()` :
 
 ```{r}
-maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
+maize.mds <- sim.geno(cross = maize.mds, step = 1)
+#maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
 maize.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
 maize.qtl
 ```
@@ -106,7 +107,7 @@ summary(maize.fit2)
 In order to add main or epistatic effects, we need to find out what the "stop rule" is. In R/qtl, such a rule is given by penalized LOD score for a model with more than one QTL (function scantwo ) provided by permutations ( n.perm = 1000 ). This function takes a lot of time to run:
 
 ```{r}
-permo.2dim <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000)
+permo.2dim <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 100)
 save(permo.2dim, file = "permo_2dim.RData")
 ```
 
