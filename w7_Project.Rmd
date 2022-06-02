@@ -1,5 +1,5 @@
 ---
-title: 'Week # 6_Project III - QTL mapping I: single marker analysis (SMA)'
+title: 'Project RIL Population Z015'
 author: "Bashir,I. (2022)"
 date: "21/04/2022"
 output: html_document
@@ -7,18 +7,28 @@ editor_options:
   chunk_output_type: inline
 ---
 
-## Maximum Likelihood (ML) estimation of recombinantion fraction & Expectation-Maximization (EM) algoritham
+## Introduction:
+
+you can explain the imprtance of the crop, the origin of the pop, the meaning of PH for maize and how rhe different qtl mapping appraoches might help us to understand the better genetic basis of a trait and guide breeding decisions.
+
+## Material and Methods + Results
+
+### Linkage map
 
 ```{r}
 # install.packages("qtl")
 library(qtl)
 ```
 
+Loading data:
+
 Similarly, we use the read.cross() function to load the data:
 
 ```{r}
 maize <- read.cross(format="csv", file="data/population_Z015.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
 ```
+
+Data summary:
 
 ```{r}
 summary(maize)
@@ -28,9 +38,14 @@ summary(maize)
 geno.image(maize)
 ```
 
+Chi_squared tests for segregation distoration
+
 ```{r}
 gt.maize <- geno.table(maize)
 gt.maize
+head(gt.maize)
+table(gt.maize$P.value <0.05)
+table(gt.maize$P.value <0.05/totmar(maize))
 ```
 
 ```{r}
@@ -41,10 +56,11 @@ table(gt.maize$P.value <0.05)
 table(gt.maize$P.value <0.05/totmar(maize))
 ```
 
-Estimation of the pairwise recombination fractions:
+Estimation of the pairwise or two-point recombination fractions:
 
 ```{r}
 maize <- est.rf(cross = maize)
+dim(maize$rf)
 plotRF(maize, col.scheme = "redblue")
 ```
 
@@ -55,16 +71,18 @@ With similar criteria used for the mouse data ( r $<$ 0.35 and LOD $>$ 3), we ca
 ## Marker grouping
 
 ```{r}
-max.rf <- 0.38
-kosambi <- function(r) (1/4)*log((1+(2*r))/(1-(2*r)))
-kosambi(r = max.rf)
+#max.rf <- 0.38
+#kosambi <- function(r) (1/4)*log((1+(2*r))/(1-(2*r)))
+#kosambi(r = max.rf)
 ```
 
+NOooooo
+
 ```{r}
-(M <- totmar(maize)) # number of markers
-(num.pair <- choose(M, 2)) # number of marker pairs
-(min.lrt <- qchisq(1-(0.05/num.pair), 1))# min LRT to consider two markers linked
-(min.lod <- 0.2172 * min.lrt)
+#(M <- totmar(maize)) # number of markers
+#(num.pair <- choose(M, 2)) # number of marker pairs
+#(min.lrt <- qchisq(1-(0.05/num.pair), 1))# min LRT to consider two markers linked
+#(min.lod <- 0.2172 * min.lrt)
 
 ```
 
@@ -72,6 +90,7 @@ kosambi(r = max.rf)
 
 ```{r}
 maize <- formLinkageGroups(maize, max.rf=0.38, min.lod=6.25, reorgMarkers=TRUE)
+summary(maize)
 #table(maize[,2])
 plotRF(maize, col.scheme = "redblue")
 
@@ -113,6 +132,17 @@ loglike.mds <- c()
 ```
 
 **Linkage group 1**
+
+```{r}
+for(c in 1:10) { #reodering markers into eacg of the 10 linkage groups
+  mds.ord <- getMDSorder(cross = maize.mds, chr = c)
+  maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
+  plotRF(maize.mds, chr=c, col.scheme = "redblue")
+}
+save(maize.mds, file = "maize_015.RData")
+```
+
+Final map:
 
 ```{r}
 c <- 1
@@ -224,24 +254,109 @@ plotRF(maize.mds, chr=c, col.scheme = "redblue")
 ```
 
 ```{r}
-knitr::kable(cbind(summaryMap(maize.mds), log.likelihood=c(loglik.mds, sum(loglik.mds))))
+#knitr::kable(cbind(summaryMap(maize.mds), log.likelihood=c(loglik.mds, sum(loglik.mds))))
 ```
 
 ```{r}
-plotMap(maize.mds)
+#plotMap(maize.mds)
 ```
 
 ```{r}
-plotRF(maize.mds, col.scheme = "redblue")
+#plotRF(maize.mds, col.scheme = "redblue")
 ```
 
 ```{r}
-save.image("maize15_mds.Rdata")
+#save.image("maize15_mds.Rdata")
+```
+
+```{r}
+summaryMap(maize015.mds)
+plotMap(maize015.mds)
+PlotRF(maize015.mds, col.scheme ="redblue")
 ```
 
 #### **Assignment week 8:**
 
 Used the linkage map to perform interval mapping (IM) for the trait "PlantHeight". Do not forget to run permutation tests to identify the LOD threshold to declare QTL at an alpha level of 0.05. Results for the QTL peak within each QTL region should be presented as a table showing QTL chromosome and location of its peak, their effects, associated LOD scores, and R-squared.
+
+## QTL Mapping
+
+Approximate critical values previously obtained from permutation tests (idealy, should be run separatly for each population):
+
+```{r}
+lod.mr <- 3.0
+lod.im <- 3.0
+lod.cim <- 7.4
+penalties.mim <- c(main = 2.92, heavy = 4.21, light = 2.05)
+```
+
+#### Single marker analysis (SMA)
+
+```{r}
+maize.mr <- scanone(maize.mds. pheno.col = "PlantHeight", method = "mr")
+summary(maize.mr, threshold = lod.mr)
+plot(maize.mr, type = "p", main = "Single marker analysis (SMA)")
+abline(h = lod.mr)
+```
+
+#### Interval mapping (IM)
+
+```{r}
+maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
+```
+
+```{r}
+maize.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
+summary(maize.im, threshold = lod.im)
+plot(maize.im, col = "blue", main = "Interval mapping (IM)")
+abline(h = lod.im)
+```
+
+#### Composite interval mapping (CIM)
+
+```{r}
+maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 20, window =10)
+(maize.cim.sig <- summary(maize.cim10, threshold = lod.cim))
+plot(maize.cim10, col = "red", main = "Composite interval mapping (CIM)")
+abline(h = lod.cim)
+```
+
+```{r}
+maize.mds <- sim.geno(maize.mds, step = 1)
+maize.cim.qtl <- makeqtl(cross = maize.mds, chr = maize.cim.sig$chr, pos = maize.cim.sig$pos)
+maize.cim.qtl
+```
+
+```{r}
+formula <- as.formula(paste("y", paste0("Q",c(1:length(maize.cim.sig$pos)), collapse = "+"))
+maize.cim.fit <- fitqtl(cross= maize.mds, pheno.col = "PlantHeight", qtl= maize.cim.qtl, formula = formula, get.ests = TRUE)
+summary(maize.cim.fit)
+```
+
+#### MIM
+
+```{r}
+maize.step <- stepwise(maize.mds, pheno.col "PlantHeight", max.qtl = 6, method = "hk", penalties = penalties.mim)
+summary(maize.step)
+plotLodProfile(maize.step, main ="PlantHeight")
+```
+
+```{r}
+maize.mds <- sim.geno(maize.mds, step = 5)
+maize.two <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk")
+save(maize.two, file = "maize_two.RData")
+```
+
+```{r}
+plot(maize.two, col.scheme = "redblue")
+summary(maize.two)
+```
+
+## Discussion
+
+## Conclusion
+
+## References
 
 ```{r}
 load("maize15_mds.Rdata")
