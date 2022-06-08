@@ -139,7 +139,7 @@ for(c in 1:10) { #reodering markers into eacg of the 10 linkage groups
   maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
   plotRF(maize.mds, chr=c, col.scheme = "redblue")
 }
-save(maize.mds, file = "maize_015.RData")
+save(maize.mds, file = "maize.RData")
 ```
 
 Final map:
