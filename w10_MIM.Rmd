@@ -34,7 +34,7 @@ Here, we are using the recombinant inbred line (RIL) population Z025, so these m
 
 ### Add main effects manually
 
-R/qtl has several functions to deal with multiple-QTL models. We will focus on some of them that are more interesting for this specific dataset, but you might want to take a look on other functions from R/qtl tutorials available here ([https://rqtl.org/tutorials/),](https://rqtl.org/tutorials/),) especially this one ([\<https://rqtl.org/tutorials/new_multiqtl.pdf>).](https://rqtl.org/tutorials/new_multiqtl.pdf).)
+R/qtl has several functions to deal with multiple-QTL models. We will focus on some of them that are more interesting for this specific dataset, but you might want to take a look on other functions from R/qtl tutorials available here ([https://rqtl.org/tutorials/),](https://rqtl.org/tutorials/),) especially this one ([\<https://rqtl.org/tutorials/new_multiqtl.pdf\>).](https://rqtl.org/tutorials/new_multiqtl.pdf).)
 
 ### `makeqtl` and `fitqtl`
 
@@ -104,7 +104,7 @@ summary(maize.fit2)
 
 #### **`scantwo`**
 
-In order to add main or epistatic effects, we need to find out what the "stop rule" is. In R/qtl, such a rule is given by penalized LOD score for a model with more than one QTL (function scantwo ) provided by permutations ( n.perm = 1000 ). This function takes a lot of time to run:
+In order to add main or epistatic effects, we need to find out what the "stop rule" is. In `R/qtl`, such a rule is given by penalized LOD score for a model with more than one QTL (function `scantwo` ) provided by permutations ( n.perm = 1000 ). This function takes a lot of time to run:
 
 ```{r}
 permo.2dim <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 100)
@@ -132,7 +132,7 @@ Two other \\(pLOD\\)s are presented. One for the full model, \\(pLOD_f\\) ( full
 
 The authors propose that one could use either a "heavy" (derived from full ) or "light" (derived from fv1 ) penalty on the interaction effect when comparing, respectively, two-QTL model or single-QTL model with a full model (i.e. a model with two-QTL and its interaction term).
 
-#### `addqtl`
+#### `addqtl manualy`
 
 What about the suggestive QTL on chromosome 3? If we want to verify if there are more QTL to be added to the model, we can use the function `addqtl()`:
 
@@ -175,7 +175,7 @@ Because the LOD is lower than our threshold of 3.06, so we stop here and can try
 
 **Adding main effects automatically**
 
-R/qtl also has a automatic function called `stepwiseqtl()` to build a multiple-QTL model from scratch by means of a stepwise model selection.
+`R/qtl` also has a automatic function called `stepwiseqtl()` to build a multiple-QTL model from scratch by means of a `stepwise` model selection.
 
 **stepwiseqtl**
 
@@ -191,7 +191,7 @@ maize.step
 
 Therefore, the same results were obtained as previously performed manually. A scheme with the steps to find the best model can be found below:
 
-![](images/1.png) **Adding epistasis**
+**Adding epistasis**
 
 In the `stepwiseqtl` run above, we have already tested for interactions between QTL in the model (and no interactions were found) `addint`\
 In the case of our manual search, interacting QTL have not been tested yet. One way of explicitly look for epistasis is by using the function `addint()` , so we use our maize.ref object:
@@ -218,38 +218,6 @@ save(maize.two, file = "maize_two.RData")
 load("maize_two.RData")
 plot(maize.two, col.scheme = "redblue")
 ```
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
-
-\
 
 \
 

@@ -7,52 +7,37 @@ editor_options:
   chunk_output_type: inline
 ---
 
-## Introduction:
+Abstract A molecular linkage map for the maize hybrid of cross between Ye478 and Dan340 was constructed by using 1106 SSR markers. The total map length was 1 478.7 cM with an average interval of 10.0 cM. Composite interval mapping was used to identify the plant height (PH) and ear position (EH) QTL at 5 environments based on the phenotypic data of 397 F2:3 families. Then 21 PH and 25 EH relevant QTL were identified. The mean contribution of 12.2% and 14.9% QTL for plant height was identified at the interval of umc2025 - umc1035 on chromosome 1 and umc1822 - bnlg1118 on chromosome 5, respectively. Meanwhile, the mean contribution of 10.2% and 22.8% to ear position were identified at the interval of phi029 - umc1102 on chromosome 3 and phi109188 - bnlg1118 on chromosome 5. The main QTL for PH and EH were both found at the regions of Bin5.05 - 5.07 on chromosome 5. The additive and partial dominant effects were the main genetic basis for plant height and ear position in maize. The effect of population size and environments on QTL mapping were analyzed.
 
-you can explain the imprtance of the crop, the origin of the pop, the meaning of PH for maize and how rhe different qtl mapping appraoches might help us to understand the better genetic basis of a trait and guide breeding decisions.
+1.  Introduction
 
-## Material and Methods + Results
+    you can explain the importance of the crop, the origin of the pop, the meaning of PH for maize and how the different `qtl` mapping approaches might help us to understand the better genetic basis of a trait and guide breeding decisions.
 
-### Linkage map
+2.  Material and Methods
+
+    1.  Linkage Group
+
+        Loading Data:
 
 ```{r}
-# install.packages("qtl")
 library(qtl)
-```
-
-Loading data:
-
-Similarly, we use the read.cross() function to load the data:
-
-```{r}
 maize <- read.cross(format="csv", file="data/population_Z015.csv", genotypes=c("0", "1", "2"), crosstype = "riself")
 ```
 
-Data summary:
+Data Summary
 
 ```{r}
 summary(maize)
-```
-
-```{r}
 geno.image(maize)
 ```
 
-Chi_squared tests for segregation distoration
+Chi_squared tests for segregation distortion:
 
 ```{r}
 gt.maize <- geno.table(maize)
 gt.maize
 head(gt.maize)
 table(gt.maize$P.value <0.05)
-table(gt.maize$P.value <0.05/totmar(maize))
-```
-
-```{r}
-table(gt.maize$P.value <0.05)
-```
-
-```{r}
 table(gt.maize$P.value <0.05/totmar(maize))
 ```
 
@@ -64,41 +49,21 @@ dim(maize$rf)
 plotRF(maize, col.scheme = "redblue")
 ```
 
-Again, this heatmap presents both the estimates (above diagonal) and LOD scores (below diagonal). The\
-heatmap shows more blue, colder colors for non-linked markers (i.e. r $\approx$ 0.5 and low LOD), and more red, warmer colors for the linked markers (i.e. r $<$ 0.35 and high ).\
+Again, this `heatmap` presents both the estimates (above diagonal) and LOD scores (below diagonal). The\
+`heatmap` shows more blue, colder colors for non-linked markers (i.e. r $\approx$ 0.5 and low LOD), and more red, warmer colors for the linked markers (i.e. r $<$ 0.35 and high ).\
 With similar criteria used for the mouse data ( r $<$ 0.35 and LOD $>$ 3), we can now see how many groups are formed by with these markers:
 
-## Marker grouping
-
-```{r}
-#max.rf <- 0.38
-#kosambi <- function(r) (1/4)*log((1+(2*r))/(1-(2*r)))
-#kosambi(r = max.rf)
-```
-
-NOooooo
-
-```{r}
-#(M <- totmar(maize)) # number of markers
-#(num.pair <- choose(M, 2)) # number of marker pairs
-#(min.lrt <- qchisq(1-(0.05/num.pair), 1))# min LRT to consider two markers linked
-#(min.lod <- 0.2172 * min.lrt)
-
-```
-
-## Linkage groups
+Marker grouping:
 
 ```{r}
 maize <- formLinkageGroups(maize, max.rf=0.38, min.lod=6.25, reorgMarkers=TRUE)
 summary(maize)
-#table(maize[,2])
 plotRF(maize, col.scheme = "redblue")
-
 ```
 
-## Marker Ordering by Multidimensional Scale (MDS) by MDSMap + MAPpoly
+Marker Ordering:
 
-MDSMap implements the MDS algorithm, and MAPpoly has a nice wrapper function called `mds_mappoly`. This function only needs the recombination fraction matrix estimated by R/qtl, and it returns a new order that can be used by `switch.order()` R/qtl function to yield a newly ordered linkage group.\
+by Multidimensional Scale (MDS) by `MDSMap` implements the MDS algorithm, and `MAPpoly` has a nice wrapper function called `mds_mappoly`. This function only needs the recombination fraction matrix estimated by `R/qtl`, and it returns a new order that can be used by `switch.order()` R/qtl function to yield a newly ordered linkage group.\
 First, we need to install `MAPpoly package` and use the function below to get the order given by the MDS algorithm for a chosen linkage group. You need to run it first so it becomes available into R before you actually use it:
 
 ```{r}
@@ -112,9 +77,9 @@ getMDSorder <- function(cross, chr){
   rec.mat <- lod.mat <- matrix(rep(NA, length(markers)^2), nrow =length(markers))
   colnames(rec.mat) <- colnames(lod.mat) <- rownames(rec.mat) <- rownames(lod.mat) <- colnames(mat)
   lod.mat[upper.tri(lod.mat)] <- mat[upper.tri(mat)]
-  lod.mat[lower.tri(lod.mat)] <- t(lod.mat)[lower.tri(lod.mat)]#; image(lod.mat)
+  lod.mat[lower.tri(lod.mat)] <- t(lod.mat)[lower.tri(lod.mat)]
   rec.mat[lower.tri(rec.mat)] <- mat[lower.tri(mat)]
-  rec.mat[upper.tri(rec.mat)] <- t(rec.mat)[upper.tri(rec.mat)]#; image(rec.mat)
+  rec.mat[upper.tri(rec.mat)] <- t(rec.mat)[upper.tri(rec.mat)]
   input.mat <- NULL
   input.mat$rec.mat <- rec.mat
   input.mat$lod.mat <- lod.mat
@@ -128,158 +93,42 @@ We'll create a new object called `maize.mds` which is a copy of our original cro
 
 ```{r}
 maize.mds <- maize
-loglike.mds <- c()
+loglik.mds <- c()
 ```
 
-**Linkage group 1**
+Reordering markers into each of the 10 linkage groups:
 
 ```{r}
-for(c in 1:10) { #reodering markers into eacg of the 10 linkage groups
+for(c in 1:10) {
   mds.ord <- getMDSorder(cross = maize.mds, chr = c)
   maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
   plotRF(maize.mds, chr=c, col.scheme = "redblue")
+  print(pull.map(maize.mds, chr = c))
+  print(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
 }
-save(maize.mds, file = "maize.RData")
 ```
 
 Final map:
 
 ```{r}
-c <- 1
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord, maxit = 10000, tol=1e-5)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-
-```
-
-**Linkage group 2**
-
-```{r}
-c <- 2
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 3**
-
-```{r}
-c <- 3
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 4**
-
-```{r}
-c <- 4
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 5**
-
-```{r}
-c <- 5
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 6**
-
-```{r}
-c <- 6
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 7**
-
-```{r}
-c <- 7
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 8**
-
-```{r}
-c <- 8
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 9**
-
-```{r}
-c <- 9
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
-```
-
-**Linkage group 10**
-
-```{r}
-c <- 10
-mds.ord <- getMDSorder(cross = maize.mds, chr = c)
-maize.mds <- switch.order(cross = maize.mds, chr=c, order=mds.ord)
-plotRF(maize.mds, chr=c, col.scheme = "redblue")
-(pull.map(maize.mds, chr = c))
-(loglik.mds[c] <- attr(maize.mds$geno[[c]]$map, "loglik"))
+knitr::kable(cbind(summaryMap(maize.mds), log.likelihood=c(loglik.mds, sum(loglik.mds))))
 ```
 
 ```{r}
-#knitr::kable(cbind(summaryMap(maize.mds), log.likelihood=c(loglik.mds, sum(loglik.mds))))
+plotMap(maize.mds)
 ```
 
 ```{r}
-#plotMap(maize.mds)
+plotRF(maize.mds, col.scheme = "redblue")
 ```
 
 ```{r}
-#plotRF(maize.mds, col.scheme = "redblue")
+save.image("maize_mds.Rdata")
 ```
-
-```{r}
-#save.image("maize15_mds.Rdata")
-```
-
-```{r}
-summaryMap(maize015.mds)
-plotMap(maize015.mds)
-PlotRF(maize015.mds, col.scheme ="redblue")
-```
-
-#### **Assignment week 8:**
-
-Used the linkage map to perform interval mapping (IM) for the trait "PlantHeight". Do not forget to run permutation tests to identify the LOD threshold to declare QTL at an alpha level of 0.05. Results for the QTL peak within each QTL region should be presented as a table showing QTL chromosome and location of its peak, their effects, associated LOD scores, and R-squared.
 
 ## QTL Mapping
+
+Used the linkage map to perform interval mapping (IM) for the trait "PlantHeight". Do not forget to run permutation tests to identify the LOD threshold to declare QTL at an alpha level of 0.05. Results for the QTL peak within each QTL region should be presented as a table showing QTL chromosome and location of its peak, their effects, associated LOD scores, and R-squared.
 
 Approximate critical values previously obtained from permutation tests (idealy, should be run separatly for each population):
 
@@ -293,58 +142,167 @@ penalties.mim <- c(main = 2.92, heavy = 4.21, light = 2.05)
 #### Single marker analysis (SMA)
 
 ```{r}
-maize.mr <- scanone(maize.mds. pheno.col = "PlantHeight", method = "mr")
-summary(maize.mr, threshold = lod.mr)
+maize.mr <- scanone(maize.mds, pheno.col = "PlantHeight", method = "mr")
 plot(maize.mr, type = "p", main = "Single marker analysis (SMA)")
-abline(h = lod.mr)
+summary(maize.mr)
+maize.perm.mr <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "mr", 
+                         n.perm = 1000, verbose = FALSE, n.cluster = 2)
+lod.sma <- summary(maize.perm.mr, alpha = 0.05)
+
+```
+
+```{r}
+plot(maize.mr, type = "p", main = "Single marker analysis (SMA)") + abline(h = lod.sma)
+maize.mr.sig <- summary(maize.mr, perms = maize.perm.mr, alpha = 0.05)
+maize.mr.sig
 ```
 
 #### Interval mapping (IM)
 
 ```{r}
 maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
+maize.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
+summary(maize.im)
 ```
 
 ```{r}
-maize.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
-summary(maize.im, threshold = lod.im)
-plot(maize.im, col = "blue", main = "Interval mapping (IM)")
-abline(h = lod.im)
+maize.perm.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",
+                         n.perm = 1000, n.cluster = 2)
+lod.im <- summary(maize.perm.im, alpha = 0.05)
+plot(maize.im, col = "red", main = "Interval mapping (IM)")+abline(h= lod.im, col = "red")
+#add.threshold(maize.im, perms = maize.perm.im, alpha = 0.05, col = "red")
+```
+
+Notice we can use `maize.im.sig` to extract the chromosomes ( chr ) and positions ( pos ) of our significant QTL:
+
+Finally, the `makeqtl()` and `fitqtl()` are used to show the QTL effect estimates for an RIL population based on an object derived from the function `sim.geno()` :
+
+We can also build a multiple QTL model, including all three QTL:
+
+```{r}
+maize.im.sig <- summary(maize.im, perms = maize.perm.im, alpha = 0.05)
+maize.im.sig
+chr <- maize.im.sig$chr
+chr
+pos <- maize.im.sig$pos
+pos
+```
+
+```{r}
+maize.mds <- sim.geno(cross = maize.mds, step = 1)
+maize.im.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.im.qtl
+maize.im.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.im.qtl,formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5 + Q6 + Q7, get.ests = TRUE)
+summary(maize.im.fit)
+```
+
+```{r}
+save.image(("maize_im.RData"))
 ```
 
 #### Composite interval mapping (CIM)
 
 ```{r}
-maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 20, window =10)
-(maize.cim.sig <- summary(maize.cim10, threshold = lod.cim))
-plot(maize.cim10, col = "red", main = "Composite interval mapping (CIM)")
-abline(h = lod.cim)
+perm.cim <- 7.4
+maize.cim10 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk",n.marcovar = 2 * sqrt(nind(maize.mds)), window = 10)
+summary(maize.cim10)
+summary(maize.cim10, threshold = perm.cim)
 ```
+
+```{r}
+maize.cim15 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = 15)
+summary(maize.cim15)
+summary(maize.cim15, threshold = perm.cim)
+```
+
+```{r}
+maize.cim20 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = 20)
+summary(maize.cim20)
+summary(maize.cim20, threshold = perm.cim)
+```
+
+```{r}
+maize.cimInf <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf)
+summary(maize.cimInf)
+summary(maize.cimInf, threshold = perm.cim)
+```
+
+```{r}
+#maize.perm.cim <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = Inf, n.perm = 1000)
+#lod.cim <- summary(maize.perm.cim, alpha = 0.05)
+#Now, if we use that permutation results to identify the most significant QTL, we have:
+#summary(maize.cim10, perms = maize.perm.cim, alpha = 0.05)
+```
+
+The green dots represent the location of markers selected as covariates (cofactors) for the CIM search with window = Inf .\
+Noticed that the QTL on chromosome 1 and 3 that we had identified using IM is right below the threshold for the CIM analysis - so we called them suggestive QTL here. Depending on the researcher's decision, we could low the threshold a bit to include it as a QTL using CIM, which is probably okay. We'll see, however, a better way to deal with it when running a multiple-QTL model, which is our next topic.
+
+Right now, suppose we want to investigate the QTL estimates under CIM with window = 10 . We just need to store the QTL chromosomes and positions from our selected model (CIM with )
+
+However, we noticed that only one QTL on chromosome 1 is listed (the one with the highest LOD score). We need to find the other one by looking at the positions in that chromosome that have a LOD score greater than our threshold of 7.39:
+
+```{r}
+plot(maize.cim10, col = "blue", main = "Composite interval mapping (CIM)")+abline(h = perm.cim)
+```
+
+```{r}
+maize.cim.sig <- summary(maize.cim10, threshold = perm.cim)
+maize.cim.sig
+```
+
+```{r}
+peak.markers <- which(maize.cim10$lod[maize.cim10$chr == 1] > 7.4)
+maize.cim10$lod[peak.markers]
+maize.cim10$pos[peak.markers]
+chr <- maize.cim.sig$chr
+chr
+pos <- maize.cim.sig$pos
+pos
+```
+
+In order to show the QTL effect estimates for an RIL population, we need to use the function `sim.geno()`, then `makeqtl()` and `fitqtl()` :
 
 ```{r}
 maize.mds <- sim.geno(maize.mds, step = 1)
-maize.cim.qtl <- makeqtl(cross = maize.mds, chr = maize.cim.sig$chr, pos = maize.cim.sig$pos)
-maize.cim.qtl
+maize.qtl <- makeqtl(cross = maize.mds, chr = chr, pos = pos)
+maize.qtl
+plot(maize.qtl)
 ```
 
 ```{r}
-formula <- as.formula(paste("y", paste0("Q",c(1:length(maize.cim.sig$pos)), collapse = "+"))
-maize.cim.fit <- fitqtl(cross= maize.mds, pheno.col = "PlantHeight", qtl= maize.cim.qtl, formula = formula, get.ests = TRUE)
-summary(maize.cim.fit)
+maize.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.qtl,formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5,  get.ests = TRUE)
+summary(maize.fit)
+save.image("maize_cim.RData")
 ```
 
-#### MIM
+#### Multiple Interval Mapping (MIM)
 
 ```{r}
-maize.step <- stepwise(maize.mds, pheno.col "PlantHeight", max.qtl = 6, method = "hk", penalties = penalties.mim)
+maize.ref <- refineqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.qtl, formula = y ~ Q1 + Q2 + Q3 + Q4 + Q5)
+plotLodProfile(maize.ref)
+```
+
+```{r}
+#perm.mim <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, n.cluster = 2)
+#save(perm.mim, file = "perm.mim.RData")
+load("perm.mim.RData")
+threshold.mim <- summary(perm.mim, alpha = 0.05)
+penalties <- calc.penalties(perm.mim)
+penalties
+```
+
+Main effect
+
+```{r}
+maize.step <- stepwiseqtl(maize.mds, pheno.col = "PlantHeight", max.qtl = 6, method = "hk", penalties = penalties)
 summary(maize.step)
 plotLodProfile(maize.step, main ="PlantHeight")
 ```
 
 ```{r}
-maize.mds <- sim.geno(maize.mds, step = 5)
-maize.two <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk")
-save(maize.two, file = "maize_two.RData")
+maize.mds <- calc.genoprob(maize.mds, step = 2)
+maize.two <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.cluster = 2)
+save(maize.two, file = "maize.two.RData")
 ```
 
 ```{r}
@@ -357,38 +315,3 @@ summary(maize.two)
 ## Conclusion
 
 ## References
-
-```{r}
-load("maize15_mds.Rdata")
-```
-
-```{r}
-maize <- calc.genoprob(maize, step = 1)
-```
-
-```{r}
-maize.perm.em <- scanone(maize, pheno.col = "PlantHeight", method = "em", n.perm = 1000, verbose = FALSE)
-maize.perm.hk <- scanone(maize, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, verbose = FALSE)
-```
-
-```{r}
-summary(maize.perm.em, alpha = 0.05)
-summary(maize.perm.hk, alpha = 0.05)
-```
-
-```{r}
-maize.em <- scanone(maize, pheno.col = "PlantHeight", method = "em")
-maize.hk <- scanone(maize, pheno.col = "PlantHeight", method = "hk")
-```
-
-```{r}
-summary(maize.em, perms = maize.perm.em, alpha = 0.05)
-summary(maize.hk, perms = maize.perm.hk, alpha = 0.05)
-```
-
-```{r}
-plot(maize.em, maize.hk, ylab = "LOD score", main = "PlantHeight", col = c("red", "blue"), lwd = 3)
-add.threshold(maize.em, perms = maize.perm.em, col = "red")
-add.threshold(maize.hk, perms = maize.perm.hk, col = "blue")
-legend("topright", legend = c("EM", "HK"), lty = 1, lwd = 3, col = c("red", "blue"))
-```
