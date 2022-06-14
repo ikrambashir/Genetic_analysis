@@ -8,21 +8,32 @@ output:
   word_document: default
 editor_options:
   chunk_output_type: inline
+bibliography: citations.bib
+text-align: justify
 ---
 
-## **Abstract** 
+## **Abstract**
 
-A molecular linkage map for the maize hybrid of cross between M162W and B73 was constructed by using 1106 SSR markers. The total map length was 1348.39 `cM`. Single marker analysis `(SMA)`, interval mapping `(IM)`, composite interval mapping `(CIM)` and multiple interval mapping `(MIM)` was used to identify the plant height (PH) based on the phenotypic data of 185 individuals of F2:3 families. Then 7 PH relevant QTL were identified. The mean contribution was 43.78% to total phenotypic variability confirmed by interval mapping. Composite interval mapping identifies 5 QTL present on chromosome 1, 4, 5 and 7. Which contribute 25.45% of total phenotypic variability. Furthermore, multiple interval mapping confirms 6 QTL present on chromosome 1, 4, 5, 7, 8 and 10 with no interaction effect.
+A molecular linkage map for the maize hybrid of cross between M162W and B73 was constructed by using 1106 SSR markers. The total map length was 1348.39 `cM`. Single marker analysis `(SMA)`, interval mapping `(IM)`, composite interval mapping `(CIM)` and multiple interval mapping `(MIM)` was used to identify the plant height (PH) based on the phenotypic data of 185 individuals of F2:3 families. Then 7 PH relevant QTL were identified. The mean contribution was 43.78% to total phenotypic variability confirmed by interval mapping. Composite interval mapping identifies 5 QTL present on chromosome 1, 4, 5 and 7. Which contribute 25.45% of total phenotypic variability. Furthermore, multiple interval mapping confirms 6 QTL present on chromosome 1, 4, 5, 7, 8 and 10 with no interaction effect. ]
 
 ## Introduction
 
-you can explain the importance of the crop, the origin of the pop, the meaning of PH for maize and how the different `qtl` mapping approaches might help us to understand the better genetic basis of a trait and guide breeding decisions.
+Both breeders and geneticists are interested in mapping quantitative trait loci (QTLs) [@1]. The null hypothesis used to determine that a QTL is absent is tested in QTL mapping approaches such as interval mapping and composite interval mapping [@2; @3; @4]. These techniques have been useful in identifying QTL responsible for a variety of quantitative features with agronomic, biological, or biomedical significance. The permutation test strategy described by Churchill and Doerge [@5; @6] is a different approach to determining critical threshold. The conceptual simplicity, distribution-free character, and application in various population configurations are all advantages of this technique. The computational workload is a significant disadvantage. For example, to establish a critical threshold for a genome-wide type-I error rate of 0.01, at least 10 000 permutations are necessary [@7]. A sample of 1000 permutations is usually considered sufficient for a type-I error of 0.05 [@5]. Permutations can be a significant task in typical applications where several attributes must be assessed. In other words, the accuracy log likelihood ratio (LOD) threshold can be determined using the permutation test.
 
-## Material and Methods:
+Plant height is a key agronomic variable in maize breeding that influence plant growth and yield potential. In recent years, studies on the genetic mechanism of plant height have received a lot of attention in order to enhance planting density and prevent plants from lodging. Molecular markers have been used to explore the trait of plant height at the molecular level since the 1990s [@8]. A number of plant height QTLs or genes have previously been identified in maize [@9]. In our study, we employed the SMA, IM, CIM and MIM approach to map the QTLs of plant height and ear height using an SSR linkage map and assess their genetic impacts in RIL maize populations.
+
+## Material and Methods + Results:
+
+QTLs were mapped based on the adjusted means by single marker analysis (SMA), interval mapping (IM),
+composite interval mapping (CIM) and multiple interval mapping (MIM) was done by using R package `qtl` @10 in RStudio @11 .
+
+Following steps were followed mentioned as
 
 ### Linkage Map
 
 #### Loading Data
+
+Data of 1106 markers from 189 individuals from cross between `M162W x B73` RIL population was uploaded by using `qtl` package.
 
 ```{r}
 library(qtl)
@@ -170,6 +181,14 @@ maize.mr.sig
 ```
 
 #### Interval mapping (IM)
+
+is a QTL mapping method that allows the systematic search for QTL along a linkage map, including the region between two markers, which were not directly scored. The strategy here is to consider the QTL genotype as missing data, and use the flanking markers to infer the QTL genotype probability. The way we compute QTL genotype probabilities conditional on the available data considers the multipoint information from the genetic map. Then, we fit a linear model every position along the genetic map, and test whether there is a QTL or not. In order to perform the test statistics, we need to estimate the parameters from the model. The two most frequently used methods for estimating the linear regression parameters in IM analyses are:
+
+1.  The exact method: maximum likelihood estimators, using Expectation-Maximization (EM) algorithm
+
+2.  An approximation method: least squares estimators, using Haley-Knott (HK) regression
+
+Let us revisit our mouse data to see how the HK regression (which is quicker and works relatively well) can be implemented.
 
 ```{r}
 maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
