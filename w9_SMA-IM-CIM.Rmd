@@ -158,9 +158,11 @@ summary(maize.im.fit)
 save.image("maize15_im.RData")
 ```
 
-### Composite Interval Mapping (CIM)
+### Composite Interval Mapping (CIM) 
 
-For running CIM, there is an function called `cim()` . In this function, we need to specify two main arguments:
+To overcome some of the shortcomings of IM, composite interval mapping (CIM) was developed. The method was described independently by Zeng (1994) and Jansen and Stam (1994). The basis of this method is an interval test that attempts to separate and isolate individual QTL effects by combining interval mapping with multiple regression. It controls for genetic variation in other regions of the genome, thus reducing background "noise" that can effect QTL detection. To control background variation, the analysis software incorporates into the model 'cofactors', a set of markers that are significantly associated with the trait and may be located anyware in the genome. They are typically identified by forward or backward stepwise regression, with user input to determine the number of cofactors and other characteristics of the analysis.
+
+For running CIM, we use a function called `cim()` . In this function, we specify two main arguments:
 
 -   The number of cofactors or covariate markers: `n.marcovar` , which can be given as .
 

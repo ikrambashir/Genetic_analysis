@@ -3,9 +3,8 @@ title: "Project RIL Population Z015"
 author: "Bashir,I. (2022)"
 date: "21/04/2022"
 output:
-  pdf_document: default
   html_document: default
-  word_document: default
+  pdf_document: default
 editor_options:
   chunk_output_type: inline
 bibliography: citations.bib
@@ -14,7 +13,7 @@ text-align: justify
 
 ## **Abstract**
 
-A molecular linkage map for the maize hybrid of cross between M162W and B73 was constructed by using 1106 SSR markers. The total map length was 1348.39 `cM`. Single marker analysis `(SMA)`, interval mapping `(IM)`, composite interval mapping `(CIM)` and multiple interval mapping `(MIM)` was used to identify the plant height (PH) based on the phenotypic data of 185 individuals of F2:3 families. Then 7 PH relevant QTL were identified. The mean contribution was 43.78% to total phenotypic variability confirmed by interval mapping. Composite interval mapping identifies 5 QTL present on chromosome 1, 4, 5 and 7. Which contribute 25.45% of total phenotypic variability. Furthermore, multiple interval mapping confirms 6 QTL present on chromosome 1, 4, 5, 7, 8 and 10 with no interaction effect. ]
+A molecular linkage map for the maize hybrid of cross between M162W and B73 was constructed by using 1106 SSR markers. The total map length was 1348.39 `cM`. Single marker analysis `(SMA)`, interval mapping `(IM)`, composite interval mapping `(CIM)` and multiple interval mapping `(MIM)` was used to identify the plant height (PH) based on the phenotypic data of 185 individuals of F2:3 families. Then 7 PH relevant QTL were identified. The mean contribution was 43.78% to total phenotypic variability confirmed by interval mapping. Composite interval mapping identifies 5 QTL present on chromosome 1, 4, 5 and 7. Which contribute 25.45% of total phenotypic variability. Furthermore, multiple interval mapping confirms 5 QTL present on chromosome 1, 4, 5, 7, 10 and 2 on chromosome 8 with having main effect and interaction effect between QTL present on chromosome 4 and 10.
 
 ## Introduction
 
@@ -24,8 +23,7 @@ Plant height is a key agronomic variable in maize breeding that influence plant 
 
 ## Material and Methods + Results:
 
-QTLs were mapped based on the adjusted means by single marker analysis (SMA), interval mapping (IM),
-composite interval mapping (CIM) and multiple interval mapping (MIM) was done by using R package `qtl` @10 in RStudio @11 .
+QTLs were mapped based on the adjusted means by single marker analysis (SMA), interval mapping (IM), composite interval mapping (CIM) and multiple interval mapping (MIM) was done by using R package `qtl` @10 in RStudio @11 .
 
 Following steps were followed mentioned as
 
@@ -33,7 +31,7 @@ Following steps were followed mentioned as
 
 #### Loading Data
 
-Data of 1106 markers from 189 individuals from cross between `M162W x B73` RIL population was uploaded by using `qtl` package.
+Data of 1106 markers from 189 individuals from cross between `M162W x B73` RIL population Z015 was uploaded by using `qtl` package.
 
 ```{r}
 library(qtl)
@@ -59,6 +57,8 @@ table(gt.maize$P.value <0.05/totmar(maize))
 
 #### Estimation of the pairwise or two-point recombination fractions:
 
+Estimation of the pairwise recombination fractions and their respective LOD scores by using the function `est.rf()`. The map is not estimated yet, so `qtl package` interprets each marker 10 cM apart. From the `plotRF()` function, we notice that 1106 markers have not been assigned to linkage groups yet.
+
 ```{r}
 maize <- est.rf(cross = maize)
 dim(maize$rf)
@@ -69,6 +69,14 @@ Again, this `heatmap` presents both the estimates (above diagonal) and LOD score
 `heatmap` shows more blue, colder colors for non-linked markers (i.e. r $\approx$ 0.5 and low LOD), and more red, warmer colors for the linked markers (i.e. r $<$ 0.35 and high ). It can now see how many groups are formed by with these markers:
 
 #### Marker grouping:
+
+Once we have the pairwise recombination fraction estimates, we provide the maximum recombination fraction (`max.rf` argument) and minimum LOD score (`min.lod` argument). This values are provided to the function `formLinkageGroups()` and they are used to see whether two markers are linked or not while avoiding false positives. For `max.rf` , we use something around 0.38, which is the value maximum recombination fraction of 0.50 when converted via Kosambi map function:
+
+$$ 
+m_ij = \frac{1}{4} log \binom {1+2r_ij}{1-2r_ij}
+$$
+
+A recombination fraction as big as 0.50 means that two markers are independently segregating.
 
 ```{r}
 maize <- formLinkageGroups(maize, max.rf=0.38, min.lod=6.25, reorgMarkers=TRUE)
@@ -165,6 +173,12 @@ Approximate critical values previously obtained from permutation tests (idealy, 
 
 #### Single marker analysis (SMA)
 
+Our first analysis involves testing for associations between each marker and the trait `PlantHeight`. So, by running the function `scanone()` with method = `mr` , which stands for "marker regression", which provide us the position along with LOD score of each marker on all chromosomes.
+
+Then the `plot()` function gives us a graphs represents position of each markers on chromosomes 1 to 10. when `summary()` function QTL mapping object gives us the information of marker with highest LOD value and their position on relative chromosome.
+
+Permutation tests can provide a critical value which can be used to declare QTL of our interest or responsible QTL for phenotype variability. So, the critical value obtained from permutation test at $a$ 0.05 was 3.09.
+
 ```{r}
 maize.mr <- scanone(maize.mds, pheno.col = "PlantHeight", method = "mr")
 plot(maize.mr, type = "p", main = "Single marker analysis (SMA)")
@@ -172,7 +186,10 @@ summary(maize.mr)
 maize.perm.mr <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "mr", 
                          n.perm = 1000, verbose = FALSE, n.cluster = 2)
 lod.sma <- summary(maize.perm.mr, alpha = 0.05)
+lod.sma
 ```
+
+After obtaining critical value for LOD score 6 markers were identified which are above the threshold and present of chromosome 1, 5, 6, 7, 8 and 10 and the positions of these markers of the respective chromosomes are also given in the below table.
 
 ```{r}
 plot(maize.mr, type = "p", main = "Single marker analysis (SMA)") +abline(h = lod.sma)
@@ -182,19 +199,21 @@ maize.mr.sig
 
 #### Interval mapping (IM)
 
-is a QTL mapping method that allows the systematic search for QTL along a linkage map, including the region between two markers, which were not directly scored. The strategy here is to consider the QTL genotype as missing data, and use the flanking markers to infer the QTL genotype probability. The way we compute QTL genotype probabilities conditional on the available data considers the multipoint information from the genetic map. Then, we fit a linear model every position along the genetic map, and test whether there is a QTL or not. In order to perform the test statistics, we need to estimate the parameters from the model. The two most frequently used methods for estimating the linear regression parameters in IM analyses are:
+is a QTL mapping method that allows the systematic search for QTL along a linkage map, including the region between two markers, which were not directly scored. The strategy here is to consider the QTL genotype as missing data, and use the flanking markers to infer the QTL genotype probability. The way we compute QTL genotype probabilities conditional on the available data considers the multipoint information from the genetic map. Then, we fit a linear model every position along the genetic map, and test whether there is a QTL or not.
 
-1.  The exact method: maximum likelihood estimators, using Expectation-Maximization (EM) algorithm
+In order to perform the test statistics, we need to estimate the parameters from the model. So, in this study we use an approximation method least squares estimators, using `Haley-Knott (HK)` regression.
 
-2.  An approximation method: least squares estimators, using Haley-Knott (HK) regression
+In order to run IM, we calculate the QTL genotype probability within marker intervals, conditional on the genetic map. We use the function `calc.genoprob()` . The argument `step = 1` defines the step size in which the probability needs to be calculated. So, In our study we calculate at every 1 `cM`.
 
-Let us revisit our mouse data to see how the HK regression (which is quicker and works relatively well) can be implemented.
+The `scanone()` is same as of SMA but we need to define the estimation method `hk` (least squares via Haley-Knott regression).
 
 ```{r}
 maize.mds <- calc.genoprob(cross = maize.mds, step = 1)
 maize.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk")
 summary(maize.im)
 ```
+
+In order to know the critical value to identify QTL using permutations, we first run the `scanone()` function with the arguments method = `"hk"` and n.perm = 1000 . Then the function `summary()` shows the LOD threshold for a given $a$ 0.05 level.
 
 ```{r}
 #perm.im <- scanone(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, n.cluster = 2)
@@ -204,11 +223,9 @@ lod.im <- summary(perm.im, alpha = 0.05)
 plot(maize.im, col = "red", main = "Interval mapping (IM)")+abline(h= lod.im)
 ```
 
-Notice we can use `maize.im.sig` to extract the chromosomes ( chr ) and positions ( pos ) of our significant QTL:
+So, now to identify the significant QTL on the chromosome above threshold level was done by using summary function and running on the object created before `maize.im`.
 
-Finally, the `makeqtl()` and `fitqtl()` are used to show the QTL effect estimates for an RIL population based on an object derived from the function `sim.geno()` :
-
-We can also build a multiple QTL model, including all three QTL:
+Finally, the `makeqtl()` and `fitqtl()` was used to show the QTL effect estimates for an RIL population based on an object derived from the function `sim.geno()`. For this purpose , we a multiple QTL model to get the estimation effects of significant QTL on our trait Plant height.
 
 ```{r}
 maize.im.sig <- summary(maize.im, perms = perm.im, alpha = 0.05)
@@ -233,11 +250,25 @@ maize.im.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight",
 summary(maize.im.fit)
 ```
 
+So, from the model summary. It is observed that 7 QTL identified by IM method. The overall effect of these QTL on phenotypic variance was 43.37%. From the estimated effects table, it is observed that QTL present on the chromosome 1 and 6 has negative effect of plant height while QTL present on chromosome 4, 5, 7, 9 and 10 contributing positively to plant height in maize crop.
+
 ```{r}
 #save.image(("maize_im.RData"))
 ```
 
 #### **Composite interval mapping (CIM)**
+
+To overcome some of the shortcomings of IM, composite interval mapping (CIM) was developed. The method was described independently by Zeng (1994) and Jansen and Stam (1994). The basis of this method is an interval test that attempts to separate and isolate individual QTL effects by combining interval mapping with multiple regression. It controls for genetic variation in other regions of the genome, thus reducing background "noise" that can effect QTL detection. To control background variation, the analysis software incorporates into the model 'cofactors', a set of markers that are significantly associated with the trait and may be located anyware in the genome. They are typically identified by forward or backward stepwise regression, with user input to determine the number of cofactors and other characteristics of the analysis.
+
+For running CIM, we use a function called `cim()` . In this function, we specify two main arguments:
+
+-   The number of cofactors or covariate markers: which is given as `n.marcovar`.
+
+<!-- -->
+
+-   The window size: window , as we don't know the exact window size suitable for our study population so in this study we use 10 `cM`, 15 `cM`, 20 `cM` and Inf `cM` window size and based on the maximum QTL QTL identification we proceed for further analysis.
+
+    First we use permutation test to get a threshold for declaring significant QTL which is 7.4
 
 ```{r, warning = FALSE}
 perm.cim <- 7.4
@@ -247,6 +278,8 @@ load("maize.cim10.RData")
 summary(maize.cim10)
 summary(maize.cim10, threshold = perm.cim)
 ```
+
+With window size 10 `cM`, 4 QTL were found higher LOD than threshold present on chromosome 1, 4, 5 and 7. while in case of window 15 `cM`, 20 `cM` and Inf 2,1 and 3 QTL were declared. Upon comparing all window size results. We observe that window size 10 `cM` is optimum for us because it contain all the QTL which are identified by other window sizes.
 
 ```{r}
 #maize.cim15 <- cim(cross = maize.mds, pheno.col = "PlantHeight", method = "hk", n.marcovar = 2 * sqrt(nind(maize.mds)), window = 15)
@@ -272,12 +305,7 @@ summary(maize.cimInf)
 summary(maize.cimInf, threshold = perm.cim)
 ```
 
-The green dots represent the location of markers selected as covariates (cofactors) for the CIM search with window = `Inf.`\
-Noticed that the QTL on chromosome 1 and 3 that we had identified using IM is right below the threshold for the CIM analysis - so we called them suggestive QTL here. Depending on the researcher's decision, we could low the threshold a bit to include it as a QTL using CIM, which is probably okay. We'll see, however, a better way to deal with it when running a multiple-QTL model, which is our next topic.
-
-Right now, suppose we want to investigate the QTL estimates under CIM with window = 10 . We just need to store the QTL chromosomes and positions from our selected model (CIM with)
-
-However, we noticed that only one QTL on chromosome 1 is listed (the one with the highest LOD score). We need to find the other one by looking at the positions in that chromosome that have a LOD score greater than our threshold of 7.39:
+We investigate the QTL estimates under CIM with window = 10 `cM`. However, we noticed that only one QTL on chromosome 1 is listed and it has the highest LOD score. We have to look into deep to find whether there are other QTL present on chromosome 1 or not. To do so by looking at the positions in that chromosome that have a LOD score greater than our threshold of 7.4. We do not identify any more QTL presence.
 
 ```{r}
 plot(maize.cim10, maize.cim15, maize.cimInf, col = c("blue", "orange", "cyan"), main = "Composite interval mapping (CIM)")+abline(h=perm.cim)
@@ -292,13 +320,13 @@ maize.cim.sig
 peak.markers <- which(maize.cim10$lod[maize.cim10$chr == 1] > 7.4)
 maize.cim10$lod[peak.markers]
 maize.cim10$pos[peak.markers]
-chr <- c(1, maize.cim.sig$chr)
-pos <- c(124, maize.cim.sig$pos)
+chr <- maize.cim.sig$chr
+pos <- maize.cim.sig$pos
 chr
 pos
 ```
 
-In order to show the QTL effect estimates for an RIL population, we need to use the function `sim.geno()`, then `makeqtl()` and `fitqtl()` :
+The next step is to show the QTL effect estimates for an RIL population. For that we use the function `sim.geno()`, then `makeqtl()` and `fitqtl()`
 
 ```{r}
 maize.mds <- sim.geno(maize.mds, step = 1)
@@ -315,12 +343,18 @@ maize.cim.fit <- fitqtl(cross = maize.mds, pheno.col = "PlantHeight",
 summary(maize.cim.fit)
 ```
 
+So, after model fitting QTL present on chromosome 1 showed the negative effect of the plant height while other QTL present on the chromosome 4, 5 and 7 showed a positive effect on the phenotypic trait. The overall effect on the phenotypic variance of plant height by declared QTL was 34.28%.
+
+To get the exact location of the QTL present on their respective chromosome, `refinqtl` function was used. The results showed us the sustained position of the QTL in case of QTL present on chromosome 1 and 7 and slightly change in the position of the QTL present on chromosome 4 and 5 from their previous position which are 76 and 120, changed to 74.2 and 122 respectively.
+
 ```{r}
 maize.ref <- refineqtl(cross = maize.mds, pheno.col = "PlantHeight", qtl = maize.cim.qtl, formula =  formula)
 plotLodProfile(maize.ref)
 ```
 
 #### Multiple Interval Mapping (MIM)
+
+Multiple interval mapping (MIM), a new statistical approach for mapping quantitative trait loci (QTL), is given. It fits multiple putative QTL directly in the model for mapping QTL using multiple marker intervals at the same time. The MIM model is based on Cockerham's genetic parameter interpretation model and the maximum likelihood method for estimating genetic parameters. The precision and power of QTL mapping could be increased using the MIM technique. Epistasis between QTL, individual genotypic values, and quantitative trait heritabilities can also be easily quantified and studied.
 
 ```{r}
 #perm.mim <- scantwo(maize.mds, pheno.col = "PlantHeight", method = "hk", n.perm = 1000, n.cluster = 2)
@@ -332,10 +366,14 @@ penalties <- calc.penalties(perm.mim)
 penalties
 ```
 
+Before applying main and interaction effect on our RIL population we estimated the permutation threshold level which are given above.
+
 #### Main effect
 
+To estimate main effect of the QTL on the observed trait `stepwiseqtl` function is used which can detect maximum 10 QTL based on the threshold level. So, from the graph 5 QTL were identified on chromosome 1, 4, 5, 7, 10 each and 2 QTL on chromosome 8. From the summary of the model it is observed that all the QTL have main effect on the plant height and there is interaction effect of QTL 2 and 7 was also present.
+
 ```{r}
-maize.step <- stepwiseqtl(maize.mds, pheno.col = "PlantHeight", max.qtl = 6, method = "hk", penalties = penalties)
+maize.step <- stepwiseqtl(maize.mds, pheno.col = "PlantHeight", max.qtl = 10, method = "hk", penalties = penalties)
 summary(maize.step)
 plotLodProfile(maize.step, main ="PlantHeight")
 ```
@@ -346,6 +384,8 @@ plotLodProfile(maize.step, main ="PlantHeight")
 #save(maize.two, file = "maize.two.RData")
 ```
 
+heat map also confirm our result presence of QTL with main effect and also the interaction effect was also significant effecting the plant height of maize crop.
+
 ```{r fig.height=6, fig.width=6}
 load("maize.two.RData")
 plot(maize.two, col.scheme = "redblue")
@@ -354,6 +394,10 @@ summary(maize.two)
 
 ## Discussion
 
+In this study, a total of 7 QTL were identified for PH by multiple interval mapping approach and 4 by CIM approach by using mean field data of the trait. In maize, several studies reported that QTL effects for plant height are largely independent of the environment, despite the presence of significant genotype by environment interaction [@23; @24]. For only QTL present on chromosome 1, alleles from recessive parent were going towards decreasing the PH values. The distribution of the QTLs for the genome showed a high concentration of QTLs in few chromosome regions. Such a concentration in the distribution of QTLs has already been observed in other studies [@23; @25; @26]. The QTLs consistently detected through all methods used favoring their use in future programs for marker-assisted selection (MAS), if the objective is selecting stable QTLs. The use of molecular markers has provided the potential to construct saturated plant genetic maps and to provide insights into the genomic location and gene action of individual QTL [@2] and the potential to enhance the efficiency of trait selection in plant breeding. Marker-assistant selection is one of the most important research directions in the molecular breeding. With the studies focused on molecular-assisted selection of qualitative traits, however, there are only a few cases to apply molecular marker-assisted selection to quantitative traits.
+
 ## Conclusion
+
+In this study, we systematically analyzed plant height traits and identified QTL by using SMA, IM, CIM and MIM methodology. Three consistent QTL with stable main effects in were obtained, but one of them has negative main effect on our trait of interest. The study of plant height is of great significance to the cultivation of new high-quality and high-yield maize germplasm. These results laid the foundation for the molecular mechanism, genetic and marker-assisted breeding for maize plant height, commercially important trait to avoid lodging.
 
 ## References
